@@ -25,8 +25,7 @@
     body=""
     params="">
   </iron-ajax>
-  
-  <darts-header active-games-list=[[activeGamesList]]></darts-header>
+  <darts-header active-games-list=[[activeGamesList]] selected-game={{currentlySelectedGame}}></darts-header>
   <column-scoreboard current-game=[[currentGame]]></column-scoreboard>
   </template>
 
@@ -76,7 +75,8 @@
 
 // Request kezelő methodok és változók
       host: 'http://theHost',
-//      activeGamesList: Array,
+// Ez itt a kiválasztott játé ID-ja
+      currentlySelectedGame: Object,
       
       _getCurrentlyActiveGames: function() {
         this.$.ajax.method = 'GET';

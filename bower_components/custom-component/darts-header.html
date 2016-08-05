@@ -19,10 +19,10 @@
     }
   </style>
   <div class="game-header">
-    <paper-dropdown-menu label="You can choose a currently active game here">
+    <paper-dropdown-menu label="You can choose a currently active game here" selected-item={{selectedGame}}>
       <paper-listbox class="dropdown-content">
         <template is='dom-repeat' items={{activeGamesList}}>
-          <paper-item>
+          <paper-item dataid={{item.gameType.id}}>
             <span>{{item.gameType.id}}</span>
             <span>{{item.gameType.name}}</span>
             <span>{{item.gameType.description}}</span>
@@ -40,8 +40,16 @@
       
       properties: {
         activeGamesList: Array,
-        gameStats: String,
-      }
+        
+        selectedGame: {
+          type: Object,
+          value:{},
+          notify: true,
+        },
+      },
+// Így lehet elérni a kiválasztott elem dataid nevű tulajdonságát.      
+//      _logSelected: function() {console.log(this.selectedGame.dataid)},
+      
     });
   </script>
 </dom-module>
