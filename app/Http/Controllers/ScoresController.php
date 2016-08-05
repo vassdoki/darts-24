@@ -38,12 +38,16 @@ class ScoresController extends Controller {
             $lastScore[0]->round_hash :
             hash('md5', Carbon::now()->toDateTimeString());
 
-        Score::create([
+        $score = Score::create([
             'game_id' => $game->id,
             'player_id' => $player->id,
             'score' => $request->input('score'),
             'round_hash' => $roundHash
         ]);
+
+        $scriptPath = base_path() . '/camera/shoot.sh';
+        $photosPath = base_path() . '/camera/photos';
+        shell_exec("sh $scriptPath $photosPath {$score->id}");
 
         return [
             'success' => true
