@@ -23,9 +23,23 @@ $app = new Laravel\Lumen\Application(
     realpath(__DIR__.'/../')
 );
 
-// $app->withFacades();
+$app->withFacades();
 
-// $app->withEloquent();
+$app->withEloquent();
+
+/*
+|--------------------------------------------------------------------------
+| Register Config Files
+|--------------------------------------------------------------------------|
+*/
+
+$app->configure('app');
+$app->configure('auth');
+$app->configure('broadcasting');
+$app->configure('cache');
+$app->configure('database');
+$app->configure('queue');
+$app->configure('view');
 
 /*
 |--------------------------------------------------------------------------
