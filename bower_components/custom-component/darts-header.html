@@ -1,5 +1,8 @@
 <!--  Ez jelenik meg az oldal tetején, egyben ez az aktív játék kiválasztásának a lenyíló listája-->
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../paper-listbox/paper-listbox.html">
+<link rel="import" href="../paper-item/paper-item.html">
 
 <dom-module id="darts-header">
   <template>
@@ -8,9 +11,25 @@
     :host {
       height: 200px;
     }
+    .game-header {
+      width: 600px;
+    }
+    paper-dropdown-menu {
+      width: 600px;
+    }
   </style>
   <div class="game-header">
-    <h1>This is the header</h1>
+    <paper-dropdown-menu label="You can choose a currently active game here">
+      <paper-listbox class="dropdown-content">
+        <template is='dom-repeat' items={{activeGamesList}}>
+          <paper-item>
+            <span>{{item.gameType.id}}</span>
+            <span>{{item.gameType.name}}</span>
+            <span>{{item.gameType.description}}</span>
+          </paper-item>
+        </template>
+      </paper-listbox>
+    </paper-dropdown-menu>
   </div>
   
   </template>
@@ -20,7 +39,7 @@
       is: 'darts-header',
       
       properties: {
-        gamesList: Object,
+        activeGamesList: Array,
         gameStats: String,
       }
     });
