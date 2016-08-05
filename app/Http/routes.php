@@ -11,16 +11,11 @@
 |
 */
 
-function returnError($message) {
-    return [
-        'error' => true,
-        'message' => $message
-    ];
-}
 
 $app->get('/', function () use ($app) {
     return 'darts-24 back-end API';
 });
+
 
 $app->get('/game-types', function() {
     return \App\Models\GameType::all();

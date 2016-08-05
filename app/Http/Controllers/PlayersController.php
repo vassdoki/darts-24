@@ -6,6 +6,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Game;
+use App\Models\Player;
 use Illuminate\Http\Request;
 
 class PlayersController extends Controller {
@@ -19,10 +21,15 @@ class PlayersController extends Controller {
     public function index(Request $request)
     {
         $this->validate($request, [
-            'game_id' => 'required|int'
+            'game_id' => 'int'
         ]);
 
-        // $request->input('game_id');
+        $gameId = $request->input('game_id');
+
+        if (empty($gameId))
+            return Player::all();
+        else
+            return Player::whereGameId($gameId)->get();
 
         return [
             [
@@ -54,6 +61,7 @@ class PlayersController extends Controller {
      */
     public function show($id)
     {
+        return Player::whereId($id)->with('game')->firstOrFail();
         return [
             'id' => $id,
             'name' => 'Peter Griffin',
@@ -78,11 +86,15 @@ class PlayersController extends Controller {
             'player_name' => 'required|string'
         ]);
 
-        // $request->input('game_id');
-        // $request->input('player_name');
+        $game = Game::whereId($request->input('game_id'))->firstOrFail();
+
+        $player = Player::create([
+            'game_id' => $game->id,
+            'name' => $request->input('player_name')
+        ]);
 
         return [
-            'player_id' => 123
+            'player_id' => $player->id
         ];
     }
 
