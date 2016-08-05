@@ -1,3 +1,4 @@
+<!--Jobb megoldás, ha a business logic a backenden dolgozik, vagy a beviteli oldalon. Átgondolva, itt elég kellemetlen lenne lekezelni, mert ennek csak a kirajzolás a dolga. Alapból nem kéne bekerülnie az adatbázisba pontoknak akkor, ha a szabályok szerint invalid, vagy nem értékelendő a kör pontértéke.-->
 <!--Ez tulajdonképpen csak egy invisible data-router element, annyi a dolga, hogy kezelje a server felé a requesteket és szétdobja a visszajött adatokat az elementek között-->
 <!--A business logicot is ez kezeli. (Ha már több játékmód lesz, akkor ez kényelmetlen lesz.)-->
 <link rel="import" href="../polymer/polymer.html">
@@ -11,9 +12,11 @@
   
   <style>
     :host {
-      height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-content: center;
     }
-  </style>
+    </style>
 <!--Az iron-ajax lekérdezi a futó session-ök listáját és a response-t eltárolja a gameSessions-ben, majd a kiválasztott sessiont lekérdezi és letárolja a currentSession-ben, majd onnan küldi tovább a többi elementnek megjelenítésre-->
   <iron-ajax
     id="ajax"
@@ -36,6 +39,7 @@
 // Ez egy minta objektum az API doksi alapján, mintha a servertől jött volna, hogy ki lehessen próbálni, hogy minden megfelelően van összekapcsolva.
 // Egy ilyen struktúrában jól el lehetne tárolni a körökhöz tartozó dobásokat. Értelemszerűen a round a primary key a táblában és auto increase
       ready: function() {
+// Ez a method maradjon a ready propertyben, hogy mindenképp automatikusan lefusson, amikor betöltődik ez a modul az index.html-be.
         this._getCurrentlyActiveGames();
         
         this.currentGame = [{
@@ -74,15 +78,31 @@
       },
 
 // Request kezelő methodok és változók
+      //Értelemszerűen ide kell beírni a server elérését
       host: 'http://theHost',
-// Ez itt a kiválasztott játé ID-ja
+
+// Ez itt a kiválasztott játék egy objektumban.
       currentlySelectedGame: Object,
-      
+
+// Ez a request kéri le a servertől a jelenleg futó játékok listáját, hogy ki lehessen választani a scoreboard tetején. Ha a ready property alatt van, akkor betöltésnél automatikusan fired.
       _getCurrentlyActiveGames: function() {
         this.$.ajax.method = 'GET';
         this.$.ajax.url = this.host + '/games';
         this.$.ajax.generateRequest();
       },
+
+// Ez kéri le a servertől a kiválasztott játékhoz tartozó játékosokat. Kell valami, ami fire-öli. this.fire('_getPlayersForSpecificGame') kifejezéssel. Ez lehet akár időzített is, ha periodikusan kell lekérdezni a servertől. Sajnos nem volt az API doskiban olyan rész, hogy a frissen felvett adatokat külön le lehessen kérdezni, ezért kénytelen vagyok időzített módon mindig lekérni a játékhoz tartozó teljes listát és újra kirajzolni, nem csak az újonnan érkező értékeket hozzárakni a DOM-hoz. A lekérdezési sűrűség legyen 1sec vagy valami nagyon közeli, így talán nem lesz érzékelhető a bevitel és a lekérdezés között eltelt idő.
+      _getPlayersForSpecificGame: function() {
+        this.$.ajax.method = 'GET';
+        this.$.ajax.url = this.host + '/players';
+        this.$.ajax.params = this.currentlySelectedGame.dataid;
+        // Asynchron method, a response visszaérkezése után írja felül a currentGame nevű változót, amit megkap scoreboard és kirajzolja. Most egy minta lista van berakva az API doksi alapján. Értelemszerűen törlendő a tartalma.
+        this.$.ajax.onRequest = function() {
+          this.currentGame = this.$.ajax.lastResponse;
+        };
+        this.$.ajax.generateRequest();
+      },
+      
 // Ide kell berakni a business logic methodjait.
     });
   </script>

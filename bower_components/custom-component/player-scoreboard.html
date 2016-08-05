@@ -8,20 +8,36 @@
     :host {
       height: 200px;
     }
+    td + td {
+      border-left: 2px solid grey;
+    }
+    th {
+      border-bottom: 3px solid red;
+    }
+    td {
+      box-sizing: border-box;
+      padding: 10px;
+      border-bottom: 1px dashed blue;
+      text-align: center;
+      font-size: 3em;
+    }
+    .player-stats-sum {
+      text-align: center;
+    }
   </style>
   
     <div class="player-stats-sum">
       <h1>[[playerName]]</h1>
 <!--      <p>[[playerPointsLeft]]</p>-->
     </div>
-<!--A kényelem kedvéért egy táblázatba rakom itt be, de ugyanilyen módon külön divekbe is be lehetne rakni.-->
+<!--A kényelem kedvéért egy táblázatba rakom itt be, de ugyanilyen módon külön divekbe is be lehetne rakni, ha spécibb style a kívánalom-->
     <table>
       <tr>
         <th>Kör</th>
         <th>1. dobás</th>
         <th>2. dobás</th>
         <th>3. dobás</th>
-        <th>Maradék pont</th>
+<!--        <th>Maradék pont</th>-->
       </tr>
       
       <template is='dom-repeat' items=[[playerScores]]>
@@ -30,6 +46,7 @@
           <td>[[item.first]]</td>
           <td>[[item.second]]</td>
           <td>[[item.third]]</td>
+<!--A hátralévő pontokat előre ki kell számolni, vagy a lekérdezést úgy kell megcsinálni az adatbázisban, hogy számolt értéket adjon vissza. Ekkor beilleszthető. a következő <td> elem is.-->
 <!--          <td>[[item.left]]</td>-->
         </tr>
       </template>

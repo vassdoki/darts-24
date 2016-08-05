@@ -6,9 +6,13 @@
   <template>
   <!-- Ez a scoreboard legyen flexbox-szal megoldva és akkor szépen elhelyezgeti a player-scoreboardokat egymás mellé-->
     <style>
+      :host {
+        display: flex;
+        justify-content: space-around;
+      }
     </style>
   <!--  Dom-repeattel ki kell iratni a játékosok listáját. Az alap játékoshoz tartozó personal scoreboard a player-scoreboardban van definiálva. -->
-    <h2>This is the scoreboard</h2>
+<!--    <h2>This is the scoreboard container</h2>-->
     <template is='dom-repeat' items={{currentGame}}>
       <player-scoreboard player-name={{item.name}} player-scores={{item.scores}}></player-scoreboard>
     </template>
@@ -21,9 +25,6 @@
       is: 'column-scoreboard',
 
       properties: {
-        selectedGame: {
-          notify: true,
-        },
         currentGame: Array,
       }
     });
