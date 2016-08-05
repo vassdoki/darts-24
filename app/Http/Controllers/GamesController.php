@@ -19,7 +19,7 @@ class GamesController extends Controller {
      */
     public function index()
     {
-        return Game::with('gameType')->get();
+        return Game::where('closed', false)->with('gameType')->get();
     }
 
     /**
@@ -53,6 +53,24 @@ class GamesController extends Controller {
 
         return [
             'game_id' => $game->id
+        ];
+    }
+
+    /**
+     * Closes a dart game session
+     *
+     * @param int $id
+     * @return array
+     */
+    public function close($id)
+    {
+        $game = Game::whereId($id)->firstOrFail();
+
+        $game->closed = true;
+        $game->save();
+
+        return [
+            'success' => true
         ];
     }
 

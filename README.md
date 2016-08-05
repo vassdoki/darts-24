@@ -77,6 +77,16 @@ Returns the details of a given game session.
 }
 ```
 
+#### POST /games/{ID}/close
+
+Closes a dart game session
+
+```
+{
+    success: true
+}
+```
+
 #### POST /players
 
 Creates a new player for a specified game session.

@@ -25,6 +25,7 @@ $app->get('/game-types', function() {
 $app->post('/games', 'GamesController@create');
 $app->get('/games', 'GamesController@index');
 $app->get('/games/{id}', 'GamesController@show');
+$app->post('/games/{id}/close', 'GamesController@close');
 
 
 $app->post('/players', 'PlayersController@create');
