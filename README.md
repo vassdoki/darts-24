@@ -83,7 +83,7 @@ Returns the details of a given game session.
 
 #### POST /players
 
-Create a new player for a specified game session.
+Creates a new player for a specified game session.
 
 Parameters: game_id, player_name
 
@@ -97,9 +97,9 @@ On success, returns the id of the new player.
 
 #### GET /players
 
-Parameters: game_id
-
 Returns a list of players for a specified game session with their scores.
+
+Parameters: game_id
 ```
 {
     {
@@ -110,5 +110,18 @@ Returns a list of players for a specified game session with their scores.
         }
     },
     ...
+}
+```
+
+#### POST /scores
+
+Saves a new score
+
+Parameters: game_id, player_id, score
+
+If saving is successful, returns this:
+```
+{
+    success: true
 }
 ```
