@@ -1,0 +1,126 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+
+
+
+
+
+<dom-module id="my-301game">
+
+  <template>
+
+    <style>
+      :host {
+        display: block;
+        padding: 10px;
+      }
+      .card {
+        box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+        padding: 16px;
+        margin: 24px;
+        border-radius: 5px;
+        background-color: #fff;
+        color: #757575;
+      }
+
+      h1 {
+        font-size: 22px;
+        margin: 16px 0;
+        color: #212121;
+      }
+      .userstyle {
+        display: flex;
+      }
+    </style>
+
+    <iron-ajax
+      id="ajax"
+      content-type="application/json"
+      url=""
+      method=""
+      last-response="{{dropDownList}}"
+      body=""
+      params="">
+    </iron-ajax>
+
+    <div class="card">
+      <paper-icon-button icon="add" raised on-tap="_addNewUserInDom"></paper-icon-button>
+      <paper-input value={{username::input}} label="username" id="inputWithButton">
+      </paper-input>
+      <!-- <paper-input id="scoreInput" label="OneShot" type="number">
+        <iron-icon prefix></iron-icon>
+        <div suffix>score</div>
+        <paper-icon-button suffix on-tap="clearInput()" icon="clear" alt="clear" title="clear">
+        </paper-icon-button>
+      </paper-input>
+      <paper-button raised on-tap="_addScore">Add</paper-button>
+      <div>[[username]]</div> -->
+    </div>
+    <div id='div' class="card">
+
+    </div>
+
+  </template>
+
+  <script>
+
+    Polymer({
+
+      properties: {
+        playerId: Number,
+
+        gameId: Number,
+
+      },
+
+      is: 'my-301game',
+
+      url: "http://ec2-52-29-108-53.eu-central-1.compute.amazonaws.com:855/scores",
+
+      _addScore: function() {
+        console.log({"game_id": this.gameId, "player_id": 55, "score": this.$.scoreInput.value});
+        this.$.ajax.method = 'POST';
+        this.$.ajax.url = this.url;
+        this.$.ajax.body = JSON.stringify({"game_id": this.gameId, "player_id": 1, "score": this.$.scoreInput.value});
+        this.currentList = this.dropDownList;
+        this.$.ajax.generateRequest();
+      },
+
+      _addNewUserInDom: function() {
+        let newuser = document.createElement('div')
+        newuser.classList.value = 'userstyle';
+        Polymer.dom(newuser).innerHTML =  this.$.inputWithButton.value;
+        let input = Polymer.Base.create('paper-input');
+        let addscore = Polymer.Base.create('paper-button')
+        addscore.innerHTML = "ADD"
+        addscore.setAttribute('icon', 'add')
+        addscore.setAttribute('data-id', '')
+        Polymer.dom(newuser).appendChild(input)
+        Polymer.dom(newuser).appendChild(addscore)
+
+
+        Polymer.dom(this.$.div).appendChild(newuser)
+
+      }
+
+    });
+
+  </script>
+
+</dom-module>

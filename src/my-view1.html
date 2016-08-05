@@ -1,0 +1,86 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="./my-newUserControllPanel.html">
+
+
+<dom-module id="my-view1">
+
+  <template>
+
+    <style>
+      :host {
+        display: block;
+        padding: 10px;
+      }
+      .card {
+        box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+        padding: 16px;
+        margin: 24px;
+        border-radius: 5px;
+        background-color: #fff;
+        color: #757575;
+      }
+      .circle {
+        display: inline-block;
+        height: 64px;
+        width: 64px;
+        border-radius: 50%;
+        background: #ddd;
+        line-height: 64px;
+        font-size: 30px;
+        color: #555;
+        text-align: center;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 16px 0;
+        color: #212121;
+      }
+      #dropdownDialog {
+        background-color: black;
+      }
+    </style>
+      <div class="card">
+        <a href="/301game">
+          <iron-icon icon:'add' class="circle">301</iron-icon>
+        </a>
+        <h1>301</h1>
+        <p> The red circle in the middle, made of hard wood, is called bulls eye and worth 50 points. It counts as a double.
+The four green fields surround bulls eye are worth 25 points.
+The numbers 1 through 20 placed around the board are nominal values for darts hitting the respective fields or sectors.
+The two larger fields of a sector (green for the 20 sector) are worth their nominal value as denoted by the number ring surrounding the board.
+The outer thin ring closest to the actual numbers are doubles, and worth double the nominal value of their sector.
+The inner thin ring is worth three times the nominal score, so the highest possible score on a single dart would be triple 20 (the small red field halfway between the number 20 and bullseye) that is worth 60 points.
+The black area outside the double ring is considered off the board and scores 0.
+        </p>
+    </div>
+
+  </template>
+
+  <script>
+
+    Polymer({
+
+      is: 'my-view1'
+
+    });
+
+  </script>
+
+</dom-module>
