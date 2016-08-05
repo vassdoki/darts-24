@@ -18,9 +18,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 
 
-
-
-
 <dom-module id="my-301game">
 
   <template>
@@ -50,12 +47,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
 
     <iron-ajax
+      auto
       id="ajax"
       content-type="application/json"
-      url=""
-      method=""
+      url="http://darts24-backend/scores"
+      method="POST"
       last-response="{{dropDownList}}"
       body=""
+      headers='{"Access-Control-Allow-Origin":"Content-Type"}'
+      on-response="handleResponse"
       params="">
     </iron-ajax>
 
@@ -63,14 +63,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <paper-icon-button icon="add" raised on-tap="_addNewUserInDom"></paper-icon-button>
       <paper-input value={{username::input}} label="username" id="inputWithButton">
       </paper-input>
-      <!-- <paper-input id="scoreInput" label="OneShot" type="number">
-        <iron-icon prefix></iron-icon>
-        <div suffix>score</div>
-        <paper-icon-button suffix on-tap="clearInput()" icon="clear" alt="clear" title="clear">
-        </paper-icon-button>
-      </paper-input>
-      <paper-button raised on-tap="_addScore">Add</paper-button>
-      <div>[[username]]</div> -->
     </div>
     <div id='div' class="card">
 
@@ -91,32 +83,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       is: 'my-301game',
 
-      url: "http://ec2-52-29-108-53.eu-central-1.compute.amazonaws.com:855/scores",
+      // url: "http://ec2-52-29-108-53.eu-central-1.compute.amazonaws.com:855/",
 
       _addScore: function() {
         console.log({"game_id": this.gameId, "player_id": 55, "score": this.$.scoreInput.value});
-        this.$.ajax.method = 'POST';
+        this.$.ajax.method = "POST";
         this.$.ajax.url = this.url;
         this.$.ajax.body = JSON.stringify({"game_id": this.gameId, "player_id": 1, "score": this.$.scoreInput.value});
         this.currentList = this.dropDownList;
         this.$.ajax.generateRequest();
       },
 
-      _addNewUserInDom: function() {
+      _addNewUserInDom: function(response) {
         let newuser = document.createElement('div')
         newuser.classList.value = 'userstyle';
         Polymer.dom(newuser).innerHTML =  this.$.inputWithButton.value;
         let input = Polymer.Base.create('paper-input');
-        let addscore = Polymer.Base.create('paper-button')
+        input.setAttribute('id','scoreInput')
+        let addscore = Polymer.Base.create('paper-icon-button')
         addscore.innerHTML = "ADD"
         addscore.setAttribute('icon', 'add')
-        addscore.setAttribute('data-id', '')
+        addscore.setAttribute('on-tap', 'addScore')
+        addscore.setAttribute('data-id', response.player_id)
         Polymer.dom(newuser).appendChild(input)
         Polymer.dom(newuser).appendChild(addscore)
-
-
         Polymer.dom(this.$.div).appendChild(newuser)
+      },
 
+      handleResponse: function() {
+        this._addNewUserInDom(this.$.ajax.lastResponse)
       }
 
     });
