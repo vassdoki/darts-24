@@ -22,4 +22,12 @@ class Game extends Model {
         return $this->belongsTo('App\Models\GameType');
     }
 
+    /**
+     * Get the players for the game session
+     */
+    public function players()
+    {
+        return $this->hasMany('App\Models\Player');
+    }
+
 }

@@ -6,6 +6,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Game;
+use App\Models\Player;
+use App\Models\Score;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ScoresController extends Controller {
@@ -24,9 +28,22 @@ class ScoresController extends Controller {
             'score' => 'required|int'
         ]);
 
-        // $request->input('game_id');
-        // $request->input('player_id');
-        // $request->input('score');
+        $game = Game::whereId($request->input('game_id'))->firstOrFail();
+        $player = Player::whereId($request->input('player_id'))->firstOrFail();
+
+        $lastScore = Score::whereGameId($game->id)->orderBy('id', 'desc')->take(1)->get();
+
+        $roundHash =
+            (!empty($lastScore[0]) AND ($lastScore[0] instanceof Score) AND $lastScore[0]->player->id === $player->id) ?
+            $lastScore[0]->round_hash :
+            hash('md5', Carbon::now()->toDateTimeString());
+
+        Score::create([
+            'game_id' => $game->id,
+            'player_id' => $player->id,
+            'score' => $request->input('score'),
+            'round_hash' => $roundHash
+        ]);
 
         return [
             'success' => true

@@ -22,4 +22,12 @@ class Player extends Model {
         return $this->belongsTo('App\Models\Game');
     }
 
+    /**
+     * Get the scores of the player
+     */
+    public function scores()
+    {
+        return $this->hasMany('App\Models\Score');
+    }
+
 }

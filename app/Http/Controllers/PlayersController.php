@@ -27,30 +27,9 @@ class PlayersController extends Controller {
         $gameId = $request->input('game_id');
 
         if (empty($gameId))
-            return Player::all();
+            return Player::with('scores')->get();
         else
-            return Player::whereGameId($gameId)->get();
-
-        return [
-            [
-                'id' => 123,
-                'name' => 'John Stephenson',
-                'created_at' => '2016-08-03 09:44:12',
-                'updated_at' => '2016-08-04 10:29:50',
-                'scores' => [
-                    'STRUCTURE NOT YET DEFINED'
-                ],
-            ],
-            [
-                'id' => 234,
-                'name' => 'Peter Griffin',
-                'created_at' => '2016-08-04 12:44:12',
-                'updated_at' => '2016-08-04 13:29:50',
-                'scores' => [
-                    'STRUCTURE NOT YET DEFINED'
-                ],
-            ]
-        ];
+            return Player::whereGameId($gameId)->with('scores')->get();
     }
 
     /**
@@ -61,16 +40,7 @@ class PlayersController extends Controller {
      */
     public function show($id)
     {
-        return Player::whereId($id)->with('game')->firstOrFail();
-        return [
-            'id' => $id,
-            'name' => 'Peter Griffin',
-            'created_at' => '2016-08-04 12:44:12',
-            'updated_at' => '2016-08-04 13:29:50',
-            'scores' => [
-                'STRUCTURE NOT YET DEFINED'
-            ],
-        ];
+        return Player::whereId($id)->with('game', 'scores')->firstOrFail();
     }
 
     /**
