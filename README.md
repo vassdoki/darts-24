@@ -21,14 +21,14 @@ Uses JSON objects and HTTP response codes for communication
 
 Returns a list of the available game types:
 ```
-{
+[
     {
         id: 123,
         name: '301',
         description: 'The simple 301 dart game'
     },
     ...
-}
+]
 ```
 
 #### POST /games
@@ -50,7 +50,7 @@ On success, returns the id of the new game session.
 Returns a list of the currently open game sessions with their details.
 
 ```
-{
+[
     {
         id: 123,
         game_type: {
@@ -62,7 +62,7 @@ Returns a list of the currently open game sessions with their details.
         updated_at: '2016-08-04 13:29:50',
     },
     ...
-}
+]
 ```
 
 #### GET /games/{ID}
@@ -101,7 +101,7 @@ Returns a list of players for a specified game session with their scores.
 
 Parameters: game_id
 ```
-{
+[
     {
         id: 123,
         name: 'John Stephenson',
@@ -110,6 +110,20 @@ Parameters: game_id
         }
     },
     ...
+]
+```
+
+#### GET /players/{ID}
+
+Returns the details of a given player.
+
+```
+{
+    id: 123,
+    name: 'John Stephenson',
+    scores: {
+        STRUCTURE NOT YET DEFINED
+    }
 }
 ```
 
