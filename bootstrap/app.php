@@ -41,6 +41,8 @@ $app->configure('database');
 $app->configure('queue');
 $app->configure('view');
 
+date_default_timezone_set(config('app.timezone'));
+
 /*
 |--------------------------------------------------------------------------
 | Register Container Bindings

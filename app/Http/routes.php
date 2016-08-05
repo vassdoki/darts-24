@@ -23,13 +23,7 @@ $app->get('/', function () use ($app) {
 });
 
 $app->get('/game-types', function() {
-    return [
-        [
-            'id' => 123,
-            'name' => '301',
-            'description' => 'The simple 301 dart game'
-        ]
-    ];
+    return \App\Models\GameType::all();
 });
 
 

@@ -6,6 +6,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Game;
+use App\Models\GameType;
 use Illuminate\Http\Request;
 
 class GamesController extends Controller {
@@ -17,28 +19,7 @@ class GamesController extends Controller {
      */
     public function index()
     {
-        return [
-            [
-                'id' => 123,
-                'game_type' => [
-                    'id' => 123,
-                    'name' => '301',
-                    'description' => 'The simple 301 dart game'
-                ],
-                'created_at' => '2016-08-03 09:44:12',
-                'updated_at' => '2016-08-03 10:29:50',
-            ],
-            [
-                'id' => 234,
-                'game_type' => [
-                    'id' => 123,
-                    'name' => '301',
-                    'description' => 'The simple 301 dart game'
-                ],
-                'created_at' => '2016-08-04 12:44:12',
-                'updated_at' => '2016-08-04 13:29:50',
-            ]
-        ];
+        return Game::with('gameType')->get();
     }
 
     /**
@@ -49,16 +30,7 @@ class GamesController extends Controller {
      */
     public function show($id)
     {
-        return [
-            'id' => $id,
-            'game_type' => [
-                'id' => 123,
-                'name' => '301',
-                'description' => 'The simple 301 dart game'
-            ],
-            'created_at' => '2016-08-04 12:44:12',
-            'updated_at' => '2016-08-04 13:29:50',
-        ];
+        return Game::whereId($id)->with('gameType')->firstOrFail();
     }
 
     /**
@@ -73,10 +45,14 @@ class GamesController extends Controller {
             'game_type_id' => 'required|int'
         ]);
 
-        // $request->input('game_type_id');
+        $gameType = GameType::whereId($request->input('game_type_id'))->firstOrFail();
+
+        $game = Game::create([
+            'game_type_id' => $gameType->id
+        ]);
 
         return [
-            'game_id' => 123
+            'game_id' => $game->id
         ];
     }
 
