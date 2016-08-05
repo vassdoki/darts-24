@@ -7,6 +7,7 @@ Uses JSON objects and HTTP response codes for communication
 On success, it returns 200 HTTP response code and the response in JSON
 On failure, it returns non-200 HTTP response codes, e.g.:
 
++ 404 (Not Found)
 + 422 (Unprocessable Entity) - most probably means a validation error
 + 500 (Internal Server Error)
 
