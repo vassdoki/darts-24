@@ -1,0 +1,50 @@
+<!--Teljesen alap scoreboard template egy játékosnak. Minden játékosé így fog kinézni-->
+<link rel="import" href="../polymer/polymer.html">
+
+<dom-module id="player-scoreboard">
+  <template>
+  
+  <style>
+    :host {
+      height: 200px;
+    }
+  </style>
+  
+    <div class="player-stats-sum">
+      <h1>[[playerName]]</h1>
+<!--      <p>[[playerPointsLeft]]</p>-->
+    </div>
+    
+    <table>
+      <tr>
+        <th>Kör</th>
+        <th>1. dobás</th>
+        <th>2. dobás</th>
+        <th>3. dobás</th>
+        <th>Maradék pont</th>
+      </tr>
+      
+      <template is='dom-repeat' items=[[playerScores]]>
+        <tr>
+          <td>[[item.round]]</td>
+          <td>[[item.first]]</td>
+          <td>[[item.second]]</td>
+          <td>[[item.third]]</td>
+<!--          <td>[[item.left]]</td>-->
+        </tr>
+      </template>
+    </table>
+    
+  </template>
+
+  <script>
+    Polymer({
+      is: 'player-scoreboard',
+      
+      properties: {
+        playerName: String,
+        playerScores: Object,
+      }
+    });
+  </script>
+</dom-module>

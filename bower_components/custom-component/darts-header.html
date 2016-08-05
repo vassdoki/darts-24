@@ -1,0 +1,28 @@
+<!--  Ez jelenik meg az oldal tetején, egyben ez az aktív játék kiválasztásának a lenyíló listája-->
+<link rel="import" href="../polymer/polymer.html">
+
+<dom-module id="darts-header">
+  <template>
+  
+  <style>
+    :host {
+      height: 200px;
+    }
+  </style>
+  <div class="game-header">
+    <h1>This is the header</h1>
+  </div>
+  
+  </template>
+
+  <script>
+    Polymer({
+      is: 'darts-header',
+      
+      properties: {
+        gamesList: Object,
+        gameStats: String,
+      }
+    });
+  </script>
+</dom-module>

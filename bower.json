@@ -1,0 +1,17 @@
+{
+  "name": "darts-24",
+  "homepage": "https://github.com/vassdoki/darts-24",
+  "authors": [
+    "Robert Czinege <czinege.robert@gmail.com>"
+  ],
+  "description": "Scoreboard",
+  "main": "",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

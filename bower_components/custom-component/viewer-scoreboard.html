@@ -1,0 +1,58 @@
+<!--Ez tulajdonképpen csak egy invisible data-router element, annyi a dolga, hogy kezelje a server felé a requesteket és szétdobja a visszajött adatokat az elementek között-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<!--page-list element, amiben ki lehet választani, hogy épp melyik game session eredményét mutassa-->
+
+<link rel="import" href="../custom-component/darts-header.html">
+<link rel="import" href="../custom-component/column-scoreboard.html">
+
+<dom-module id="viewer-scoreboard">
+  <template>
+  
+  <style>
+    :host {
+      height: 200px;
+    }
+  </style>
+<!--Az iron-ajax lekérdezi a futó session-ök listáját és a response-t eltárolja a gameSessions-ben, majd a kiválasztott sessiont lekérdezi és letárolja a currentSession-ben, majd onnan küldi tovább a többi elementnek megjelenítésre-->
+  <iron-ajax
+    id="ajax"
+    content-type="application/json"
+    url=""
+    method=""
+    last-response=""
+    on-response=""
+    body=""
+    params="">
+  </iron-ajax>
+  
+  <darts-header></darts-header>
+  <column-scoreboard current-game=[[currentGame]]></column-scoreboard>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'viewer-scoreboard',
+      
+// Ez egy minta objektum az API doksi alapján, mintha a servertől jött volna, hogy ki lehessen próbálni, hogy minden megfelelően van összekapcsolva.
+// Egy ilyen struktúrában jól el lehetne tárolni a körökhöz tartozó dobásokat. Értelemszerűen a round a primary key a táblában és auto increase
+      ready: function() {
+        this.currentGame = [{
+          id: 123,
+          name: 'John Stephenson',
+          scores: [
+            {round: 1, first: 13, second: 7, third: 5}, 
+            {round: 2, first: 50, second: 50, third: 50}
+          ]}, {
+          id: 124,
+          name: 'Peter Griffin',
+          scores: [
+            {round: 1, first: 50, second: 25, third: 24}, 
+            {round: 2, first: 50, second: 40, third: 12}
+          ]}];
+      },
+
+// Ide kell berakni a business logic methodjait.
+    });
+  </script>
+</dom-module>

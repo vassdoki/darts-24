@@ -1,0 +1,29 @@
+<!--Ez a template tartalmazza a játékosok egyedi scoreboardjait. Containerként formázandó-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../custom-component/player-scoreboard.html">
+
+<dom-module id="column-scoreboard">
+  <template>
+  <!-- Ez a scoreboard legyen flexbox-szal megoldva és akkor szépen elhelyezgeti a player-scoreboardokat egymás mellé-->
+    <style>
+    </style>
+  <!--  Dom-repeattel ki kell iratni a játékosok listáját. Az alap játékoshoz tartozó personal scoreboard a player-scoreboardban van definiálva. -->
+    <h2>This is the scoreboard</h2>
+    <template is='dom-repeat' items={{currentGame}}>
+      <player-scoreboard player-name={{item.name}} player-scores={{item.scores}}></player-scoreboard>
+    </template>
+  
+  
+  </template>
+
+  <script>
+    Polymer({
+      is: 'column-scoreboard',
+
+      properties: {
+        playersList: Array,
+        currentGame: Array,
+      }
+    });
+  </script>
+</dom-module>
