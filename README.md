@@ -58,7 +58,7 @@ Returns a list of the currently open game sessions with their details.
             name: '301',
             description: 'The simple 301 dart game'
         },
-        created_at: '2016-08-04 12:44:12'
+        created_at: '2016-08-04 12:44:12',
         updated_at: '2016-08-04 13:29:50',
     },
     ...
