@@ -4,16 +4,11 @@ PHP API built on Laravel
 
 Uses JSON objects and HTTP response codes for communication
 
-+ on success, it returns 200 HTTP response code and the response in JSON
-+ on known exception, it returns 200 HTTP response code and the error message in JSON
+On success, it returns 200 HTTP response code and the response in JSON
+On failure, it returns non-200 HTTP response codes, e.g.:
 
-```
-{
-    error: true,
-    message: 'Invalid game_id'
-}
-```
-+ on unknown exception, it returns 500 HTTP response code
++ 422 (Unprocessable Entity) - most probably means a validation error
++ 500 (Internal Server Error)
 
 ## API documentation
 
