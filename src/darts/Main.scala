@@ -81,6 +81,11 @@ object Main extends SimpleSwingApplication {
   var selected = 0
   val imageViews: List[Label] = List.fill(4) {new Label}
   var throwResult = new Label("Throw result")
+  var throwValue = new Label("Waiting...") {
+    foreground = Color.RED
+    font = new Font("Arial", 0, 200)
+    preferredSize = new java.awt.Dimension(400, 400)
+  }
 
   // DATA ----------------------------------------------
   var prop:Properties = new Properties();
@@ -100,16 +105,6 @@ object Main extends SimpleSwingApplication {
     new CvPoint(227, 389)
   )
 
-
-  var laHue = new Label("Hue")
-  var tfHueMin = createSlider(0, 100, 0)
-  var tfHueMax = createSlider(0, 100, 0)
-  var laSat = new Label("Sat")
-  var tfSatMin = createSlider(0, 400, 0)
-  var tfSatMax = createSlider(0, 400, 0)
-  var laLig = new Label("Lig")
-  var tfLigMin = createSlider(0, 100, 0)
-  var tfLigMax = createSlider(0, 100, 0)
 
   var waitingForImage = true
 
@@ -243,30 +238,21 @@ object Main extends SimpleSwingApplication {
     //
 
     val buttonsPanel = new GridPanel(rows0 = 0, cols0 = 1) {
-      contents += new Button(openImageAction)
-      contents += new Button(processAction)
-      contents += new Button(cameraAction)
-      contents += new Button(calibrateAction)
-      for (i <- 0 to 3) {
-        contents += new FlowPanel {
-          contents += checkboxes(i)
-          contents += new Label(labelTexts(i))
-        }
-      }
-
-      contents += laHue
-      contents += tfHueMin
-      contents += tfHueMax
-      contents += laSat
-      contents += tfSatMin
-      contents += tfSatMax
-      contents += laLig
-      contents += tfLigMin
-      contents += tfLigMax
-      contents += throwResult
+//      contents += new Button(openImageAction)
+//      contents += new Button(processAction)
+//      contents += new Button(cameraAction)
+//      contents += new Button(calibrateAction)
+//      for (i <- 0 to 3) {
+//        contents += new FlowPanel {
+//          contents += checkboxes(i)
+//          contents += new Label(labelTexts(i))
+//        }
+//      }
+//
+//      contents += throwResult
+      contents += throwValue
       vGap = 1
     }
-    updateSliderLabels()
 
     // Layout frame contents
     contents = new BorderPanel() {
@@ -284,12 +270,6 @@ object Main extends SimpleSwingApplication {
 
     // UI events
     listenTo(imageViews(0).mouse.clicks)
-    listenTo(tfHueMin)
-    listenTo(tfHueMax)
-    listenTo(tfSatMin)
-    listenTo(tfSatMax)
-    listenTo(tfLigMin)
-    listenTo(tfLigMax)
     checkboxes map { c => listenTo(c) }
     reactions += {
       case e: MouseReleased => {
@@ -368,6 +348,8 @@ object Main extends SimpleSwingApplication {
                         val (x,y) = findTopWhite(foreground)
                         val (mod, num) = identifyNumber(cvPoint(x,y))
                         println(" top: x: " + x + " y: " + y + " mod: " + mod + " num: " + num)
+                        val modT = if (mod == 2) { "d" } else {if (mod == 3) {"t"} else {""}}
+                        throwValue.text = "" + modT + num
                       }
                       if (talalat == 7) {
                         // mar kicsit elhalvanyult, lassuk hova ment
@@ -407,7 +389,6 @@ object Main extends SimpleSwingApplication {
   }
 
   def doTransform(): Unit = {
-    updateSliderLabels
     saveProperties
 
     if (! originalImage.isDefined) {
@@ -424,10 +405,10 @@ object Main extends SimpleSwingApplication {
     //var (filteredOriginal, firstPointOriginal) = filterColors(originalImage.get, start.x, end.x, start.y, end.y)
     //var filteredOriginal = hslCalibrationDiff(originalImage.get, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
     //var filteredOriginal = diffBlue(originalImage.get)
-    var filteredOriginal = minMaxDiff(perspectiveTransformed, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
-    println("filter color original finished")
-    imageViews(1).icon = new ImageIcon(filteredOriginal.getBufferedImage)
-    println("imageViews(1) refreshed")
+//    var filteredOriginal = minMaxDiff(perspectiveTransformed, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
+//    println("filter color original finished")
+//    imageViews(1).icon = new ImageIcon(filteredOriginal.getBufferedImage)
+//    println("imageViews(1) refreshed")
 
     val color: CvScalar = new CvScalar(250, 250, 5, 0)
     var z = cvCloneImage(perspectiveTransformed)
@@ -438,9 +419,9 @@ object Main extends SimpleSwingApplication {
     //println("transfomed image filtered")
     //findValueOnFilteredImage(filteredImage, firstPoint)
     //val filteredTransformed = transformImage(filteredOriginal)
-    var filteredWithTable = cvCloneImage(filteredOriginal)
-    drawTable(filteredWithTable, color)
-    imageViews(3).icon = new ImageIcon(filteredWithTable.getBufferedImage)
+//    var filteredWithTable = cvCloneImage(filteredOriginal)
+//    drawTable(filteredWithTable, color)
+//    imageViews(3).icon = new ImageIcon(filteredWithTable.getBufferedImage)
     //
     //        val src2 = cvCloneImage(originalImage.get)
     //        trSrc map { p =>
@@ -548,7 +529,8 @@ object Main extends SimpleSwingApplication {
     // 6-os közepe a 0 fok és óra járásával ellentétes irányba megy
     val nums = List(6, 13, 4, 18, 1, 20, 5, 12, 9, 14, 11, 8, 16, 7, 19, 3, 17, 2, 15, 10)
 
-    val number = nums(Math.floor((degree + 9) / 18).toInt)
+    val int: Int = Math.floor((degree + 9) / 18).toInt
+    val number = if (int > 19) 0 else nums(int)
 
     val circleNumber: Int = distancesFromBull filter { dfb => dfb < distance } length
 
@@ -608,25 +590,6 @@ object Main extends SimpleSwingApplication {
     }
   }
 
-  def createSlider(pmin: Int, pmax: Int, pvalue: Int) = {
-    new Slider {
-      min = pmin
-      max = pmax
-      //value = pvalue
-      labels = (pmin to pmax by (pmax / 5)).map { x: Int => x -> new Label(f"${x / 100.0}%.1f") }.toMap
-      paintLabels = true
-    }
-  }
-
-  def updateSliderLabels() = {
-    if (tfHueMax.value - tfHueMin.value < 50) {
-      laHue.text = f"Hue ${tfHueMin.value / 100.0}%.2f - ${tfHueMax.value / 100.0}%.2f"
-    } else {
-      laHue.text = f"Hue ${tfHueMax.value / 100.0}%.2f - ${tfHueMin.value / 100.0}%.2f **"
-    }
-    laSat.text = f"Sat ${tfSatMin.value / 100.0}%.2f - ${tfSatMax.value / 100.0}%.2f"
-    laLig.text = f"Li ${tfLigMin.value / 100.0}%.2f - ${tfLigMax.value / 100.0}%.2f"
-  }
 
   def minMax(x1: Int, x2: Int, y1: Int, y2: Int) = {
     val d = new File("/home/vassdoki/Dropbox/darts/v2/cam-ures")
@@ -653,45 +616,6 @@ object Main extends SimpleSwingApplication {
     }
     (min.toMap, max.toMap)
   }
-  def minMaxDiff(i: IplImage, x1: Int, x2: Int, y1: Int, y2: Int) = {
-    var dst = cvCloneImage(i)
-    val maxDiff = 0.9
-
-    {
-      var (rc, gc, bc) = getRgbPixel(i, x1, y1)
-      // calculate calibration correction
-      pixelCalibrationCorrection = List(
-        pixelCalibration(0) / rc.toFloat,
-        pixelCalibration(1) / gc.toFloat,
-        pixelCalibration(2) /bc.toFloat
-      )
-    }
-
-    for (x <- x1 to x2; y <- y1 to y2) {
-      //var (r, g, b) = getRgbPixelWithCorrection(i, x, y)
-      var (r, g, b) = getRgbPixel(i, x, y)
-      val p = new CvPoint(x, y)
-
-      println("R("+x+","+y+"): " + min(f"B$x%d-$y%d") + " " + max(f"B$x%d-$y%d") + " curr: " + b)
-      if (
-        (min(f"R$x%d-$y%d") * maxDiff > r || max(f"R$x%d-$y%d") / maxDiff < r)
-          && (min(f"G$x%d-$y%d") * maxDiff > g || max(f"G$x%d-$y%d") / maxDiff < g)
-          && (min(f"B$x%d-$y%d") * maxDiff > b || max(f"B$x%d-$y%d") / maxDiff < b)
-      ) {
-        cvLine(dst, p, p, new CvScalar(100, g*1.5, r*1.5, 255), 1, 8, 0)
-      } else {
-        cvLine(dst, p, p, new CvScalar(0,0,0, 255), 1, 8, 0)
-      }
-      //            val p2 = new CvPoint(x+11, y)
-      //            cvLine(dst, p2, p2, new CvScalar(b, g, r, 255), 1, 8, 0)
-      //            val p3 = new CvPoint(x+22, y)
-      //            cvLine(dst, p3, p3, new CvScalar(min(f"B$x%d-$y%d"), min(f"G$x%d-$y%d"), min(f"R$x%d-$y%d"), 255), 1, 8, 0)
-      //            val p4 = new CvPoint(x+33, y)
-      //            cvLine(dst, p4, p4, new CvScalar(max(f"B$x%d-$y%d"), max(f"G$x%d-$y%d"), max(f"R$x%d-$y%d"), 255), 1, 8, 0)
-
-    }
-    dst
-  }
 
   def loadProperties = {
 
@@ -702,12 +626,6 @@ object Main extends SimpleSwingApplication {
     for(i <- 0 to 3) {
       setSrcPoint(i, prop.getProperty(s"src${i}x").toInt, prop.getProperty(s"src${i}y").toInt)
     }
-    tfHueMin.value = prop.getProperty("tfHueMin").toInt
-    tfHueMax.value = prop.getProperty("tfHueMax").toInt
-    tfSatMin.value = prop.getProperty("tfSatMin").toInt
-    tfSatMax.value = prop.getProperty("tfSatMax").toInt
-    tfLigMin.value = prop.getProperty("tfLigMin").toInt
-    tfLigMax.value = prop.getProperty("tfLigMax").toInt
 
     if (input != null) {
       input.close();
@@ -719,12 +637,6 @@ object Main extends SimpleSwingApplication {
       prop.setProperty(s"src${i}x", trSrc(i).x.toString)
       prop.setProperty(s"src${i}y", trSrc(i).y.toString)
     }
-    prop.setProperty("tfHueMin", tfHueMin.value.toString)
-    prop.setProperty("tfHueMax", tfHueMax.value.toString)
-    prop.setProperty("tfSatMin", tfSatMin.value.toString)
-    prop.setProperty("tfSatMax", tfSatMax.value.toString)
-    prop.setProperty("tfLigMin", tfLigMin.value.toString)
-    prop.setProperty("tfLigMax", tfLigMax.value.toString)
 
     prop.store(output, null)
     output.close
