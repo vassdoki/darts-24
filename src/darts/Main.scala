@@ -4,9 +4,11 @@ import java.awt.{Dimension, Point, Color}
 import java.awt.Cursor._
 import java.awt.image.BufferedImage
 import java.io._
+import java.text.NumberFormat
 import java.util.Properties
 import javax.swing.{ImageIcon, SwingUtilities}
 
+import com.googlecode.javacpp.BytePointer
 import com.googlecode.javacv.cpp.opencv_core.CvMat
 import com.googlecode.javacv.cpp.opencv_core.CvPoint
 import com.googlecode.javacv.cpp.opencv_core.CvScalar
@@ -63,10 +65,11 @@ object Main extends SimpleSwingApplication {
   var currentImage: IplImage = null
   val mog = new BackgroundSubtractorMOG
 
-
   // CONFIG
   val allowCameraAutoRefresh = true
   val defaultDirectory = "/home/vassdoki/Dropbox/darts/v2/cam"
+
+  val CAMERA_HW_NUM = 1
 
   val hslCalibX1 = 1
   val hslCalibX2 = 360
@@ -163,7 +166,7 @@ object Main extends SimpleSwingApplication {
       cursor = getPredefinedCursor(WAIT_CURSOR)
       var c: CvCapture = null
       try {
-        c = cvCreateCameraCapture(1)
+        c = cvCreateCameraCapture(CAMERA_HW_NUM)
         cvSetCaptureProperty(c,CV_CAP_PROP_FRAME_WIDTH,960)
         cvSetCaptureProperty(c,CV_CAP_PROP_FRAME_HEIGHT,720)
         val img: IplImage = cvQueryFrame(c)
@@ -183,7 +186,7 @@ object Main extends SimpleSwingApplication {
       var c: CvCapture = null
       try {
         println("create capture start")
-        c = cvCreateCameraCapture(1)
+        c = cvCreateCameraCapture(CAMERA_HW_NUM)
         cvSetCaptureProperty(c,CV_CAP_PROP_FRAME_WIDTH,960)
         cvSetCaptureProperty(c,CV_CAP_PROP_FRAME_HEIGHT,720)
         var i = 0
@@ -300,26 +303,33 @@ object Main extends SimpleSwingApplication {
 
     if (allowCameraAutoRefresh) {
       val f = Future {
-        cvCapture = cvCreateCameraCapture(0)
+        cvCapture = cvCreateCameraCapture(CAMERA_HW_NUM)
         cvSetCaptureProperty(cvCapture,CV_CAP_PROP_FRAME_WIDTH,960)
         cvSetCaptureProperty(cvCapture,CV_CAP_PROP_FRAME_HEIGHT,720)
 
         var count = 0
         var talalat = 0
+        var img: IplImage = null
+        var perspectiveTransformed: IplImage = null
+        var foreground: IplImage = null
+        var x: IplImage = null
+        val color: CvScalar = new CvScalar(250, 250, 5, 0)
+
         try {
           while (true) {
             while (!waitingForImage) {
               Thread.sleep(100)
             }
             waitingForImage = false
-            val img: IplImage = cvQueryFrame(cvCapture)
+            img = cvQueryFrame(cvCapture)
+            release(originalImage.getOrElse(null))
             originalImage = Some(cvCloneImage(img))
             count += 1
             processAction.enabled = true
             SwingUtilities.invokeLater(new Runnable() {
 
               def findTopWhite(i: IplImage) : (Int, Int) = {
-                val d = i.imageData()
+                val d: BytePointer = i.imageData()
                 var j: Int = 0
                 while(d.get(j) == 0 && j < 960 * 720) {
                   j = j + 1
@@ -329,9 +339,11 @@ object Main extends SimpleSwingApplication {
 
               def run() = {
                 if (originalImage.get != null && originalImage.get.width() > 0) {
-                  val perspectiveTransformed = transformImage(originalImage.get)
+                  release(perspectiveTransformed)
+                  perspectiveTransformed = transformImage(originalImage.get)
 
-                  val foreground = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1)
+                  release(foreground)
+                  foreground = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1)
                   mog.apply(perspectiveTransformed, foreground,.01);
 
                   imageViews(0).icon = new ImageIcon(originalImage.get.getBufferedImage)
@@ -351,12 +363,6 @@ object Main extends SimpleSwingApplication {
                         val modT = if (mod == 2) { "d" } else {if (mod == 3) {"t"} else {""}}
                         throwValue.text = "" + modT + num
                       }
-                      if (talalat == 7) {
-                        // mar kicsit elhalvanyult, lassuk hova ment
-//                        val (x,y) = findTopWhite(foreground)
-//                        val (mod, num) = identifyNumber(cvPoint(x,y))
-//                        println(">>>>>>>>>>>>>>>>>>>>>> top: x: " + x + " y: " + y + " mod: " + mod + " num: " + num)
-                      }
                     } else {
                       // mar elhalvanyodott
                       talalat = 0
@@ -369,11 +375,10 @@ object Main extends SimpleSwingApplication {
                   }
 
                   imageViews(2).icon = new ImageIcon(foreground.getBufferedImage)
-                  val x = cvCloneImage(foreground)
-                  val color: CvScalar = new CvScalar(250, 250, 5, 0)
+                  release(x)
+                  x = cvCloneImage(foreground)
                   drawTable(x, color)
                   imageViews(3).icon = new ImageIcon(x.getBufferedImage)
-
                 }
                 throwResult.text = "camera " + count
                 waitingForImage = true
@@ -590,6 +595,11 @@ object Main extends SimpleSwingApplication {
     }
   }
 
+  def release(i:IplImage) = {
+    if (i != null) {
+      cvReleaseImage(i)
+    }
+  }
 
   def minMax(x1: Int, x2: Int, y1: Int, y2: Int) = {
     val d = new File("/home/vassdoki/Dropbox/darts/v2/cam-ures")
@@ -620,7 +630,7 @@ object Main extends SimpleSwingApplication {
   def loadProperties = {
 
     var input: InputStream = null
-    input = new FileInputStream("config.properties")
+    input = new FileInputStream("/home/vassdoki/git/darts-fedex/darts-opencv/config.properties")
     prop.load(input)
 
     for(i <- 0 to 3) {
@@ -632,7 +642,7 @@ object Main extends SimpleSwingApplication {
     }
   }
   def saveProperties = {
-    var output = new FileOutputStream("config.properties")
+    var output = new FileOutputStream("/home/vassdoki/git/darts-fedex/darts-opencv/config.properties")
     for(i <- 0 to 3) {
       prop.setProperty(s"src${i}x", trSrc(i).x.toString)
       prop.setProperty(s"src${i}y", trSrc(i).y.toString)

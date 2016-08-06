@@ -7,18 +7,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>javacv.examples</groupId>
-    <artifactId>opencv2-cookbook</artifactId>
+    <groupId>darts</groupId>
+    <artifactId>darts</artifactId>
     <packaging>jar</packaging>
-    <version>0.7</version>
-    <name>OpenCV2 Cookbook Examples for JavaCV</name>
-    <url>https://code.google.com/p/javacv</url>
-    <inceptionYear>2011</inceptionYear>
+    <version>0.1</version>
+    <name>Darts score recogniser with JavaCV</name>
+    <url>http://vassdoki.imind.hu/darts</url>
+    <inceptionYear>2016</inceptionYear>
 
     <developers>
         <developer>
-            <name>Jarek Sacha</name>
-            <email>jsacha [at] users [dot] sf [another dot] net</email>
+            <name>Laszlo Vass</name>
+            <email>laszlo.vass [at] imind [dot] eu</email>
         </developer>
     </developers>
 
@@ -92,7 +92,6 @@
 
     <build>
         <sourceDirectory>src</sourceDirectory>
-        <testSourceDirectory>test/src</testSourceDirectory>
         <plugins>
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
@@ -134,6 +133,20 @@
                         <include>**/*Test.*</include>
                         <include>**/*Suite.*</include>
                     </includes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>darts.Main</mainClass>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                        </manifest>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>
@@ -242,21 +255,5 @@
         </profile>
     </profiles>
 
-    <issueManagement>
-        <url>https://code.google.com/p/javacv/issues/list</url>
-    </issueManagement>
-
-    <mailingLists>
-        <mailingList>
-            <name>Discussion group for the JavaCV project</name>
-            <post>javacv@googlegroups.com</post>
-            <archive>https://groups.google.com/forum/?fromgroups#!forum/javacv</archive>
-        </mailingList>
-    </mailingLists>
-
-    <scm>
-        <connection>scm:git:https://code.google.com/p/javacv/</connection>
-        <url>https://code.google.com/p/javacv/</url>
-    </scm>
 </project>
 

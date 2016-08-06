@@ -701,7 +701,7 @@ object MainOld extends SimpleSwingApplication {
   def loadProperties = {
 
     var input: InputStream = null
-    input = new FileInputStream("config.properties")
+    input = new FileInputStream("/home/vassdoki/git/darts-fedex/darts-opencv/config.properties")
     prop.load(input)
 
     for(i <- 0 to 3) {
@@ -719,7 +719,7 @@ object MainOld extends SimpleSwingApplication {
     }
   }
   def saveProperties = {
-    var output = new FileOutputStream("config.properties")
+    var output = new FileOutputStream("/home/vassdoki/git/darts-fedex/darts-opencv/config.properties")
     for(i <- 0 to 3) {
       prop.setProperty(s"src${i}x", trSrc(i).x.toString)
       prop.setProperty(s"src${i}y", trSrc(i).y.toString)
