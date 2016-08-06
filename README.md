@@ -1,6 +1,6 @@
 # darts-24 back-end
 
-PHP API built on Laravel
+Back-end PHP API built on Lumen for the [Darts Scoreboard Project](https://github.com/vassdoki/darts-24/)
 
 Uses JSON objects and HTTP response codes for communication
 
@@ -28,10 +28,34 @@ Returns a list of the available game types:
         description: 'The simple 301 dart game',
         created_at: '2016-08-05 15:48:06',
         updated_at: '2016-08-05 15:48:06',
-        config: { CUSTOM RULES IN JSON }
+        config: '{ CUSTOM RULES IN JSON }'
     },
     ...
 ]
+```
+
+#### GET /game-types/{ID}
+
+Returns the details of a game type:
+
+```
+GAMETYPE OBJECT DEFINED ABOVE
+```
+
+#### POST /game-types
+
+Creates a new game type.
+
+Required parameters: name (string), description (string)
+
+Optional parameters: config (string)
+
+On success, returns the id of the new game type.
+
+```
+{
+    game_type_id: 123
+}
 ```
 
 #### POST /games
