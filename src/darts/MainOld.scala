@@ -1,48 +1,19 @@
 package darts
 
-import java.awt.{Dimension, Point, Color}
 import java.awt.Cursor._
 import java.awt.image.BufferedImage
+import java.awt.{Color, Dimension, Point}
 import java.io._
 import java.util.Properties
 import javax.swing.{ImageIcon, SwingUtilities}
 
-import com.googlecode.javacv.cpp.opencv_core.CvMat
-import com.googlecode.javacv.cpp.opencv_core.CvPoint
-import com.googlecode.javacv.cpp.opencv_core.CvScalar
-import com.googlecode.javacv.cpp.opencv_core.IplImage
-import com.googlecode.javacv.cpp.opencv_core._
-import com.googlecode.javacv.cpp.opencv_core._
-import com.googlecode.javacv.cpp.opencv_highgui.CvCapture
-import com.googlecode.javacv.cpp.opencv_highgui._
-import com.googlecode.javacv.cpp.opencv_highgui._
-import com.googlecode.javacv.cpp.opencv_imgproc._
+import com.googlecode.javacv.cpp.opencv_core.{CvMat, CvPoint, CvScalar, IplImage, _}
+import com.googlecode.javacv.cpp.opencv_highgui.{CvCapture, _}
 import com.googlecode.javacv.cpp.opencv_imgproc._
 
-import _root_.scala.collection.mutable
-import _root_.scala.concurrent.Future
-import _root_.scala.swing.Action
-import _root_.scala.swing.BorderPanel
-import _root_.scala.swing.Button
-import _root_.scala.swing.CheckBox
-import _root_.scala.swing.Dialog
-import _root_.scala.swing.Dialog.Message._
-import _root_.scala.swing.FileChooser
-import _root_.scala.swing.FlowPanel
-import _root_.scala.swing.Frame
-import _root_.scala.swing.GridPanel
-import _root_.scala.swing.Label
-import _root_.scala.swing.MainFrame
-import _root_.scala.swing.ScrollPane
-import _root_.scala.swing.SimpleSwingApplication
-import _root_.scala.swing.Slider
-import _root_.scala.swing._
-import _root_.scala.swing.event.ButtonClicked
-import _root_.scala.swing.event.MouseReleased
-import _root_.scala.swing.event.ValueChanged
+import _root_.scala.swing.{Action, BorderPanel, Button, CheckBox, Dialog, FileChooser, FlowPanel, Frame, GridPanel, Label, MainFrame, ScrollPane, SimpleSwingApplication, Slider}
+import _root_.scala.swing.event.{ButtonClicked, MouseReleased, ValueChanged}
 import scala.collection.mutable
-import scala.collection.parallel.ParSeq
-import scala.collection.parallel.mutable.ParArray
 import scala.concurrent.Future
 
 //import opencv2_cookbook.chapter01.PanAndZoom.PanAndZoomCanvas
@@ -50,11 +21,9 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.swing.Dialog.Message.Error
 import scala.swing.FileChooser.Result.Approve
-import scala.swing._
-import scala.swing.event._
 
 
-object Main extends SimpleSwingApplication {
+object MainOld extends SimpleSwingApplication {
 
   // CONFIG
   val allowCameraAutoRefresh = false
@@ -177,6 +146,26 @@ object Main extends SimpleSwingApplication {
       cursor = getPredefinedCursor(WAIT_CURSOR)
       try {
         minMax(hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
+        //                                val d = new File("/home/vassdoki/Dropbox/darts/v2/cam-ures")
+        //                                val x: ParSeq[File] = ParSeq(d.listFiles.filter(_.isFile): _*)
+        //
+        //                                val y = x map {
+        //                                    file: File =>
+        //                                        println("File(" + file.getAbsolutePath + " START")
+        //                                        val newImage = cvLoadImage(file.getAbsolutePath)
+        //                                        val x = averagePixels(newImage, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
+        //                                        println("File(" + file.getAbsolutePath + " END")
+        //                                        x
+        //                                }
+        //                                println("Fileok feldolgozva")
+        //                                hslCalibration = y.foldLeft(mutable.Map[String, Float]().withDefaultValue(0)) {
+        //                                    (map1, map2) =>
+        //                                        map1 ++ map2.map { case (k, v) => k -> (v + map1(k)) }
+        //                                }
+        //                                println("fold left kesz")
+        //                                hslCalibration.foreach { p => hslCalibration(p._1) = p._2 / x.length }
+        //                                println("atlagolas kesz")
+        //                                //hslCalibration.foreach { p => println(p._1 + " -> " + p._2) }
       } finally {
         cursor = getPredefinedCursor(DEFAULT_CURSOR)
       }
@@ -436,6 +425,80 @@ object Main extends SimpleSwingApplication {
     (r, g, b)
   }
 
+  def filterColors(src: IplImage, fromx: Int, tox: Int, fromy: Int, toy: Int): (IplImage, CvPoint) = {
+    val width = src.width
+    val height = src.height
+    var start = System.currentTimeMillis()
+    val parimage: Array[Int] = src.getBufferedImage.getRGB(0, 0, width, height, null, 0, width)
+    println("par array megvan sec: " + (System.currentTimeMillis() - start))
+    start = System.currentTimeMillis()
+
+    var src2 = cvCloneImage(src)
+    var s: Int = 0
+    var p: CvPoint = new CvPoint(0, 0)
+    val black = new CvScalar(0, 0, 0, 0)
+    var firstBlue = new CvPoint(9999, 9999)
+    parimage.zipWithIndex.map{
+      t =>
+        var x = t._2 % width
+        var y = t._2 / width
+        var c = new Color(t._1)
+        //for (x <- fromx to tox; y <- fromy to toy) {
+        //val (r, g, b) = (c.getRed, c.getGreen, c.getBlue)
+        val r = (t._1 & 0xff0000) >> 16
+        val g = (t._1 & 0x00ff00) >> 8
+        val b = (t._1 & 0x0000ff)
+
+
+        var hsl: Array[Float] = Array(0, 0, 0)
+        hsl = Color.RGBtoHSB(r, g, b, hsl)
+
+        p.x(x)
+        p.y(y)
+        val ifHue = if (tfHueMax.value - tfHueMin.value < 50) {
+          (hsl(0) >= tfHueMin.value / 100.0 && hsl(0) <= tfHueMax.value / 100.0)
+        } else {
+          (hsl(0) >= tfHueMax.value / 100.0 || hsl(0) <= tfHueMin.value / 100.0)
+        }
+        if (
+          ifHue
+            && hsl(1) >= tfSatMin.value / 100.0
+            && hsl(1) <= tfSatMax.value / 100.0
+            && hsl(2) >= tfLigMin.value / 100.0
+            && hsl(2) <= tfLigMax.value / 100.0
+        ) {
+          //cvLine(src2, p, p, new CvScalar(hsl(0)*100+100, hsl(1)*100, hsl(2)*100+100, 0), 1, 8, 0)
+          //cvLine(src2, p, p, new CvScalar(b,g,r,255), 1, 8, 0)
+          cvLine(src2, p, p, new CvScalar(255, 255, 255, 255), 1, 8, 0)
+          if (y < firstBlue.y && !lastThrow.contains(p.x + ";" + p.y)) {
+            firstBlue.y(y)
+            firstBlue.x(x)
+          }
+          lastThrow += p.x + ";" + p.y
+        } else {
+          s = 0
+          cvLine(src2, p, p, black, 1, 8, 0)
+          cvLine(src2, p, p, new CvScalar(b / 4, g / 4, r / 4, 255), 1, 8, 0)
+        }
+    }
+    println("ciklus megvan sec: " + (System.currentTimeMillis() - start))
+    (src2, firstBlue)
+  }
+
+  def findValueOnFilteredImage(src2: IplImage, firstBlue: CvPoint) {
+    drawTable(src2, new CvScalar(50, 50, 50, 0))
+    if (firstBlue.y < 9999) {
+      throwCount += 1
+      cvCircle(src2, firstBlue, 8, new CvScalar(100, 100, 250, 0), 1, 8, 0)
+      val res = identifyNumber(firstBlue)
+      throwResult.text = "Res: " + res._1 + "X " + res._2
+      println("Count: " + throwCount + " result: " + res._1 + " X   " + res._2)
+      if (throwCount % 3 == 0) {
+        lastThrow.clear()
+      }
+    }
+  }
+
   def identifyNumber(p: CvPoint): Tuple2[Int, Int] = {
     val degree = getDegreeFromBull(p)
     val distance = getDistanceFromBull(p)
@@ -520,6 +583,77 @@ object Main extends SimpleSwingApplication {
     }
     laSat.text = f"Sat ${tfSatMin.value / 100.0}%.2f - ${tfSatMax.value / 100.0}%.2f"
     laLig.text = f"Li ${tfLigMin.value / 100.0}%.2f - ${tfLigMax.value / 100.0}%.2f"
+  }
+
+  def averagePixels(i: IplImage, x1: Int, x2: Int, y1: Int, y2: Int): Map[String, Float] = {
+    var res = mutable.Map[String, Float]().withDefaultValue(0)
+    for (x <- x1 to x2; y <- y1 to y2) {
+      val hsl: Array[Float] = getHslPixel(i, x, y)
+      res(f"$x%d-$y%dH") = res(f"$x%d-$y%dH") + hsl(0)
+      res(f"$x%d-$y%dS") = res(f"$x%d-$y%dS") + hsl(1)
+      res(f"$x%d-$y%dL") = res(f"$x%d-$y%dL") + hsl(2)
+    }
+    //res.foreach{p => res(p._1) = p._2 / (230 * 213)}
+    res.toMap
+  }
+
+  def countPixels(i: IplImage, x1: Int, x2: Int, y1: Int, y2: Int): Map[String, Int] = {
+    var res = mutable.Map[String, Int]().withDefaultValue(0)
+    for (x <- x1 to x2; y <- y1 to y2) {
+      val hsl: Array[Float] = getHslPixel(i, x, y)
+      res(f"H${hsl(0)}%.2f") = res(f"H${hsl(0)}%.2f") + 1
+      res(f"S${hsl(1)}%.2f") = res(f"S${hsl(1)}%.2f") + 1
+      res(f"L${hsl(2)}%.2f") = res(f"L${hsl(2)}%.2f") + 1
+    }
+    res.toMap
+  }
+
+
+  def hslCalibrationDiff(i: IplImage, x1: Int, x2: Int, y1: Int, y2: Int): IplImage = {
+    var dst = cvCloneImage(i)
+    val minDiff = 0.5
+    for (x <- x1 to x2; y <- y1 to y2) {
+      var (r, g, b) = getRgbPixel(i, x, y)
+      var hsl: Array[Float] = Array(0, 0, 0)
+      hsl = Color.RGBtoHSB(r, g, b, hsl)
+
+      if (Math.abs(hsl(0) - hslCalibration(f"$x%d-$y%dH")) > minDiff) {
+        r = 255
+      } else {
+        r = r / 4
+      }
+      if (Math.abs(hsl(1) - hslCalibration(f"$x%d-$y%dS")) > minDiff) {
+        g = 255
+      } else {
+        g = r / 4
+      }
+      if (Math.abs(hsl(2) - hslCalibration(f"$x%d-$y%dL")) > minDiff) {
+        b = 255
+      } else {
+        b = r / 4
+      }
+      val p = new CvPoint(x, y)
+      cvLine(dst, p, p, new CvScalar(b, g, r, 255), 1, 8, 0)
+      //val avgColor = new Color(Color.HSBtoRGB(hslCalibration(f"$x%d-$y%dH"), hslCalibration(f"$x%d-$y%dS"), hslCalibration(f"$x%d-$y%dL")))
+      //cvLine(dst, p, p, new CvScalar(avgColor.getBlue, avgColor.getGreen, avgColor.getRed, 255), 1, 8, 0)
+    }
+    dst
+  }
+
+  def diffBlue(i: IplImage): IplImage = {
+    var dst = cvCloneImage(i)
+    for (x <- 1 to dst.width; y <- 1 to dst.height) {
+      var (r, g, b) = getRgbPixel(i, x, y)
+      val p = new CvPoint(x, y)
+      // (b > 110 && r < 100 && g < 100)
+      if (b > 80 && b * 0.85 > g && b * 0.85 > r
+      ) { // || (89 >= b && r.toFloat < b * 0.78 && g.toFloat < b * 0.87)
+        cvLine(dst, p, p, new CvScalar(b*1.5, g*1.5, r*1.5, 255), 1, 8, 0)
+      } else {
+        cvLine(dst, p, p, new CvScalar(b/4, g/4, r/4, 255), 1, 8, 0)
+      }
+    }
+    dst
   }
 
   def minMax(x1: Int, x2: Int, y1: Int, y2: Int) = {
