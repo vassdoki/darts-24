@@ -25,7 +25,8 @@ class ScoresController extends Controller {
         $this->validate($request, [
             'game_id' => 'required|int',
             'player_id' => 'required|int',
-            'score' => 'required|int'
+            'score' => 'required|int',
+            'modifier' => 'string|size:1'
         ]);
 
         $game = Game::whereId($request->input('game_id'))->firstOrFail();
@@ -42,7 +43,8 @@ class ScoresController extends Controller {
             'game_id' => $game->id,
             'player_id' => $player->id,
             'score' => $request->input('score'),
-            'round_hash' => $roundHash
+            'round_hash' => $roundHash,
+            'modifier' => $request->input('modifier')
         ]);
 
         $scriptPath = base_path() . '/camera/shoot.sh';

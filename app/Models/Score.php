@@ -12,7 +12,7 @@ class Score extends Model {
 
     protected $table = 'scores';
 
-    protected $fillable = ['player_id', 'game_id', 'score', 'round_hash'];
+    protected $fillable = ['player_id', 'game_id', 'score', 'round_hash', 'modifier'];
 
     /**
      * Get the Player that the score belongs to.
