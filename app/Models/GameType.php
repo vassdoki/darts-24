@@ -12,4 +12,6 @@ class GameType extends Model {
 
     protected $table = 'game_types';
 
+    protected $fillable = ['name', 'description', 'config'];
+
 }

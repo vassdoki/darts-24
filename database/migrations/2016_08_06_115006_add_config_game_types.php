@@ -14,7 +14,7 @@ class AddConfigGameTypes extends Migration
     public function up()
     {
         Schema::table('game_types', function (Blueprint $table) {
-            $table->string('config');
+            $table->string('config')->nullable();
         });
     }
 

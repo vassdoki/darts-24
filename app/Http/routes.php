@@ -17,9 +17,9 @@ $app->get('/', function () use ($app) {
 });
 
 
-$app->get('/game-types', function() {
-    return \App\Models\GameType::all();
-});
+$app->post('/game-types', 'GameTypesController@create');
+$app->get('/game-types', 'GameTypesController@index');
+$app->get('/game-types/{id}', 'GameTypesController@show');
 
 
 $app->post('/games', 'GamesController@create');
