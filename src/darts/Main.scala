@@ -18,6 +18,7 @@ import com.googlecode.javacv.cpp.opencv_highgui._
 import com.googlecode.javacv.cpp.opencv_highgui._
 import com.googlecode.javacv.cpp.opencv_imgproc._
 import com.googlecode.javacv.cpp.opencv_imgproc._
+import com.googlecode.javacv.cpp.opencv_video.BackgroundSubtractorMOG
 
 import _root_.scala.collection.mutable
 import _root_.scala.concurrent.Future
@@ -56,14 +57,21 @@ import scala.swing.event._
 
 object Main extends SimpleSwingApplication {
 
+
+  var backgroundImage: IplImage = null
+  var foregroundImage: IplImage = null
+  var currentImage: IplImage = null
+  val mog = new BackgroundSubtractorMOG
+
+
   // CONFIG
-  val allowCameraAutoRefresh = false
+  val allowCameraAutoRefresh = true
   val defaultDirectory = "/home/vassdoki/Dropbox/darts/v2/cam"
 
-  val hslCalibX1 = 120
-  val hslCalibX2 = 420
-  val hslCalibY1 = 20
-  val hslCalibY2 = 350
+  val hslCalibX1 = 1
+  val hslCalibX2 = 360
+  val hslCalibY1 = 1
+  val hslCalibY2 = 360
 
   // UI elments -----------------------------------
   private lazy val fileChooser = new FileChooser(new File(defaultDirectory))
@@ -177,11 +185,57 @@ object Main extends SimpleSwingApplication {
 
     val calibrateAction = Action("Calibrate") {
       cursor = getPredefinedCursor(WAIT_CURSOR)
+      var c: CvCapture = null
       try {
-        minMax(hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
+        println("create capture start")
+        c = cvCreateCameraCapture(1)
+        cvSetCaptureProperty(c,CV_CAP_PROP_FRAME_WIDTH,960)
+        cvSetCaptureProperty(c,CV_CAP_PROP_FRAME_HEIGHT,720)
+        var i = 0
+        while(i < 100) {
+          println("foto start")
+          val img: IplImage = cvQueryFrame(c)
+
+          println("clone start")
+          originalImage = Some(cvCloneImage(img))
+          if (originalImage.get != null && originalImage.get.width() > 0) {
+            println("transform start")
+            val perspectiveTransformed = transformImage(originalImage.get)
+
+            println("mog start")
+            val foreground = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1)
+            mog.apply(perspectiveTransformed, foreground,.01);
+
+            println("icon 0")
+            imageViews(0).icon = new ImageIcon(originalImage.get.getBufferedImage)
+            println("icon 1")
+            imageViews(1).icon = new ImageIcon(perspectiveTransformed.getBufferedImage)
+            println("icon 2")
+            imageViews(2).icon = new ImageIcon(foreground.getBufferedImage)
+            val x = cvCloneImage(foreground)
+            val color: CvScalar = new CvScalar(250, 250, 5, 0)
+            drawTable(x, color)
+            imageViews(3).icon = new ImageIcon(x.getBufferedImage)
+            println("vege")
+
+          }
+          println(i)
+          Thread.sleep(400)
+          i = i + 1
+        }
+        processAction.enabled = true
       } finally {
+        cvReleaseCapture(c)
         cursor = getPredefinedCursor(DEFAULT_CURSOR)
       }
+
+
+//      cursor = getPredefinedCursor(WAIT_CURSOR)
+//      try {
+//        minMax(hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
+//      } finally {
+//        cursor = getPredefinedCursor(DEFAULT_CURSOR)
+//      }
     }
 
     //
@@ -266,30 +320,79 @@ object Main extends SimpleSwingApplication {
 
     if (allowCameraAutoRefresh) {
       val f = Future {
-        cvCapture = cvCreateCameraCapture(1)
+        cvCapture = cvCreateCameraCapture(0)
+        cvSetCaptureProperty(cvCapture,CV_CAP_PROP_FRAME_WIDTH,960)
+        cvSetCaptureProperty(cvCapture,CV_CAP_PROP_FRAME_HEIGHT,720)
+
         var count = 0
+        var talalat = 0
         try {
           while (true) {
             while (!waitingForImage) {
-              Thread.sleep(20)
+              Thread.sleep(100)
             }
             waitingForImage = false
-            println("read image")
             val img: IplImage = cvQueryFrame(cvCapture)
-            println("image read")
             originalImage = Some(cvCloneImage(img))
             count += 1
             processAction.enabled = true
             SwingUtilities.invokeLater(new Runnable() {
-              def run() = {
-                println("IMEG ELOTT")
-                if (originalImage.get != null && originalImage.get.width() > 0) {
-                  imageViews(0).icon = new ImageIcon(originalImage.get.getBufferedImage)
+
+              def findTopWhite(i: IplImage) : (Int, Int) = {
+                val d = i.imageData()
+                var j: Int = 0
+                while(d.get(j) == 0 && j < 960 * 720) {
+                  j = j + 1
                 }
-                println("IMEG UTAN")
-                doTransform()
-                println("do transform utan")
-                //                            println("image refreshed")
+                (j % i.width(), j / i.width())
+              }
+
+              def run() = {
+                if (originalImage.get != null && originalImage.get.width() > 0) {
+                  val perspectiveTransformed = transformImage(originalImage.get)
+
+                  val foreground = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1)
+                  mog.apply(perspectiveTransformed, foreground,.01);
+
+                  imageViews(0).icon = new ImageIcon(originalImage.get.getBufferedImage)
+                  imageViews(1).icon = new ImageIcon(perspectiveTransformed.getBufferedImage)
+
+                  val TotalNumberOfPixels = 960 * 720
+                  val nonZeroCount = cvCountNonZero(foreground);
+                  if (talalat > 0) {
+                    if (nonZeroCount > 0) {
+                      // meg nem halvanyodott el
+                      talalat = talalat + 1
+                      if (talalat <= 10) {
+                        print(" talalat: " + talalat + " feher: " + nonZeroCount)
+                        val (x,y) = findTopWhite(foreground)
+                        val (mod, num) = identifyNumber(cvPoint(x,y))
+                        println(" top: x: " + x + " y: " + y + " mod: " + mod + " num: " + num)
+                      }
+                      if (talalat == 7) {
+                        // mar kicsit elhalvanyult, lassuk hova ment
+//                        val (x,y) = findTopWhite(foreground)
+//                        val (mod, num) = identifyNumber(cvPoint(x,y))
+//                        println(">>>>>>>>>>>>>>>>>>>>>> top: x: " + x + " y: " + y + " mod: " + mod + " num: " + num)
+                      }
+                    } else {
+                      // mar elhalvanyodott
+                      talalat = 0
+                    }
+                  } else {
+                    if (nonZeroCount > 0) {
+                      // most lattuk meg a talalatot
+                      talalat = 1
+                    }
+                  }
+
+                  imageViews(2).icon = new ImageIcon(foreground.getBufferedImage)
+                  val x = cvCloneImage(foreground)
+                  val color: CvScalar = new CvScalar(250, 250, 5, 0)
+                  drawTable(x, color)
+                  imageViews(3).icon = new ImageIcon(x.getBufferedImage)
+
+                }
                 throwResult.text = "camera " + count
                 waitingForImage = true
               }
@@ -314,17 +417,17 @@ object Main extends SimpleSwingApplication {
     val start = invTransformPoint(new CvPoint(50, 50))
     val end = invTransformPoint(new CvPoint(350, 350))
     println("start")
-    //var (filteredOriginal, firstPointOriginal) = filterColors(originalImage.get, start.x, end.x, start.y, end.y)
-    //var filteredOriginal = hslCalibrationDiff(originalImage.get, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
-    //var filteredOriginal = diffBlue(originalImage.get)
-    var filteredOriginal = minMaxDiff(originalImage.get, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
-    println("filter color original finished")
-    imageViews(1).icon = new ImageIcon(filteredOriginal.getBufferedImage)
-    println("imageViews(1) refreshed")
-
 
     val perspectiveTransformed = transformImage(originalImage.get)
     println("original image transfered")
+
+    //var (filteredOriginal, firstPointOriginal) = filterColors(originalImage.get, start.x, end.x, start.y, end.y)
+    //var filteredOriginal = hslCalibrationDiff(originalImage.get, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
+    //var filteredOriginal = diffBlue(originalImage.get)
+    var filteredOriginal = minMaxDiff(perspectiveTransformed, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
+    println("filter color original finished")
+    imageViews(1).icon = new ImageIcon(filteredOriginal.getBufferedImage)
+    println("imageViews(1) refreshed")
 
     val color: CvScalar = new CvScalar(250, 250, 5, 0)
     var z = cvCloneImage(perspectiveTransformed)
@@ -334,9 +437,10 @@ object Main extends SimpleSwingApplication {
     //var (filteredImage, firstPoint) = filterColors(perspectiveTransformed, 50, 350, 50, 350)
     //println("transfomed image filtered")
     //findValueOnFilteredImage(filteredImage, firstPoint)
-    val filteredTransformed = transformImage(filteredOriginal)
-    drawTable(filteredTransformed, color)
-    imageViews(3).icon = new ImageIcon(filteredTransformed.getBufferedImage)
+    //val filteredTransformed = transformImage(filteredOriginal)
+    var filteredWithTable = cvCloneImage(filteredOriginal)
+    drawTable(filteredWithTable, color)
+    imageViews(3).icon = new ImageIcon(filteredWithTable.getBufferedImage)
     //
     //        val src2 = cvCloneImage(originalImage.get)
     //        trSrc map { p =>
@@ -574,7 +678,7 @@ object Main extends SimpleSwingApplication {
           && (min(f"G$x%d-$y%d") * maxDiff > g || max(f"G$x%d-$y%d") / maxDiff < g)
           && (min(f"B$x%d-$y%d") * maxDiff > b || max(f"B$x%d-$y%d") / maxDiff < b)
       ) {
-        cvLine(dst, p, p, new CvScalar(b*1.5, g*1.5, r*1.5, 255), 1, 8, 0)
+        cvLine(dst, p, p, new CvScalar(100, g*1.5, r*1.5, 255), 1, 8, 0)
       } else {
         cvLine(dst, p, p, new CvScalar(0,0,0, 255), 1, 8, 0)
       }
