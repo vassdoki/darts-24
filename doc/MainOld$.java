@@ -1,27 +1,4 @@
-package darts
-
-import java.awt.Cursor._
-import java.awt.image.BufferedImage
-import java.awt.{Color, Dimension, Point}
-import java.io._
-import java.util.Properties
-import javax.swing.{ImageIcon, SwingUtilities}
-
-import com.googlecode.javacv.cpp.opencv_core.{CvMat, CvPoint, CvScalar, IplImage, _}
-import com.googlecode.javacv.cpp.opencv_highgui.{CvCapture, _}
-import com.googlecode.javacv.cpp.opencv_imgproc._
-
-import _root_.scala.swing.{Action, BorderPanel, Button, CheckBox, Dialog, FileChooser, FlowPanel, Frame, GridPanel, Label, MainFrame, ScrollPane, SimpleSwingApplication, Slider}
-import _root_.scala.swing.event.{ButtonClicked, MouseReleased, ValueChanged}
-import scala.collection.mutable
-import scala.concurrent.Future
-
-//import opencv2_cookbook.chapter01.PanAndZoom.PanAndZoomCanvas
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.swing.Dialog.Message.Error
-import scala.swing.FileChooser.Result.Approve
-
+package darts;
 
 object MainOld extends SimpleSwingApplication {
 

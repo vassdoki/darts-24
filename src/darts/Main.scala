@@ -161,6 +161,8 @@ object Main extends SimpleSwingApplication {
       var c: CvCapture = null
       try {
         c = cvCreateCameraCapture(1)
+        cvSetCaptureProperty(c,CV_CAP_PROP_FRAME_WIDTH,960)
+        cvSetCaptureProperty(c,CV_CAP_PROP_FRAME_HEIGHT,720)
         val img: IplImage = cvQueryFrame(c)
         originalImage = Some(cvCloneImage(img))
         if (originalImage.get != null && originalImage.get.width() > 0) {
