@@ -76,10 +76,10 @@
     var playerTemplate = function(id, name) {
         return '<li class="list-group-item">' +
                 '<span>'+name+'</span>' +
-                '<span class="pull-right">' +
+                '<form style="display: inline;"><span class="pull-right">' +
                 '<input data-player-id="'+id+'" class="form-control" style="display: inline-block; width: 80px;" type="number" min="0" max="50">' +
                 ' <button data-player-id="'+id+'" class="add-score btn btn-warning">Add score</button>' +
-                '</span><span class="clearfix"></span></li>';
+                '</span></form><span class="clearfix"></span></li>';
     };
 
     $(document).ready(function() {
@@ -108,6 +108,7 @@
         game.fail(function() {
             alert('Oooops, there was an error!!');
         });
+        return false;
     });
 
     $('#add-new-player').click(function() {
@@ -160,6 +161,7 @@
                 alert('Oooops, there was an error!!');
             });
         }
+        return false;
     });
 
 </script>
