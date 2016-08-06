@@ -69,7 +69,7 @@ object Main extends SimpleSwingApplication {
   val allowCameraAutoRefresh = true
   val defaultDirectory = "/home/vassdoki/Dropbox/darts/v2/cam"
 
-  val CAMERA_HW_NUM = 1
+  val CAMERA_HW_NUM = 0
 
   val hslCalibX1 = 1
   val hslCalibX2 = 360
