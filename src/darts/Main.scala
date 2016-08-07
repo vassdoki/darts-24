@@ -64,6 +64,7 @@ object Main extends SimpleSwingApplication {
   var foregroundImage: IplImage = null
   var currentImage: IplImage = null
   val mog = new BackgroundSubtractorMOG
+  var fileCount = 0
 
   // CONFIG
   val allowCameraAutoRefresh = true
@@ -331,8 +332,8 @@ object Main extends SimpleSwingApplication {
               def findTopWhite(i: IplImage) : (Int, Int) = {
                 val d: BytePointer = i.imageData()
                 var j: Int = 0
-                while(d.get(j) == 0 && j < 960 * 720) {
-                  j = j + 1
+                while((d.get(j) == 0 || d.get(j+1) == 0) && j < 960 * 720) {
+                  j = j + 2
                 }
                 (j % i.width(), j / i.width())
               }
@@ -362,6 +363,14 @@ object Main extends SimpleSwingApplication {
                         println(" top: x: " + x + " y: " + y + " mod: " + mod + " num: " + num)
                         val modT = if (mod == 2) { "d" } else {if (mod == 3) {"t"} else {""}}
                         throwValue.text = "" + modT + num
+                        if (talalat == 2) {
+                          cvSaveImage(f"/home/vassdoki/Dropbox/darts/v2/cam/$fileCount%03d-a-talalat:" +
+                            f"$talalat%02d-feher:$nonZeroCount%04d-score:$modT$num.png", perspectiveTransformed)
+                        }
+                        cvSaveImage(f"/home/vassdoki/Dropbox/darts/v2/cam/$fileCount%03d-b-talalat:" +
+                          f"$talalat%02d-feher:$nonZeroCount%04d-score:$modT$num.png", foreground)
+                        fileCount = fileCount + 1
+
                       }
                     } else {
                       // mar elhalvanyodott
@@ -374,11 +383,23 @@ object Main extends SimpleSwingApplication {
                     }
                   }
 
-                  imageViews(2).icon = new ImageIcon(foreground.getBufferedImage)
-                  release(x)
-                  x = cvCloneImage(foreground)
-                  drawTable(x, color)
-                  imageViews(3).icon = new ImageIcon(x.getBufferedImage)
+                  //imageViews(2).icon = new ImageIcon(foreground.getBufferedImage)
+//                  release(x)
+//                  x = cvCloneImage(foreground)
+//                  drawTable(x, color)
+//                  imageViews(2).icon = new ImageIcon(x.getBufferedImage)
+
+                  val eroded = IplImage.create(cvGetSize(foreground), foreground.depth, 1)
+                  cvErode(foreground, eroded, null, 1)
+                  imageViews(2).icon = new ImageIcon(eroded.getBufferedImage)
+
+                  val dilated = IplImage.create(cvGetSize(foreground), foreground.depth, 1)
+                  cvDilate(foreground, dilated, null, 1)
+                  val eroded2 = IplImage.create(cvGetSize(foreground), foreground.depth, 1)
+                  cvErode(dilated, eroded2, null, 1)
+                  imageViews(3).icon = new ImageIcon(eroded2.getBufferedImage)
+
+
                 }
                 throwResult.text = "camera " + count
                 waitingForImage = true
@@ -407,34 +428,10 @@ object Main extends SimpleSwingApplication {
     val perspectiveTransformed = transformImage(originalImage.get)
     println("original image transfered")
 
-    //var (filteredOriginal, firstPointOriginal) = filterColors(originalImage.get, start.x, end.x, start.y, end.y)
-    //var filteredOriginal = hslCalibrationDiff(originalImage.get, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
-    //var filteredOriginal = diffBlue(originalImage.get)
-//    var filteredOriginal = minMaxDiff(perspectiveTransformed, hslCalibX1, hslCalibX2, hslCalibY1, hslCalibY2)
-//    println("filter color original finished")
-//    imageViews(1).icon = new ImageIcon(filteredOriginal.getBufferedImage)
-//    println("imageViews(1) refreshed")
-
     val color: CvScalar = new CvScalar(250, 250, 5, 0)
     var z = cvCloneImage(perspectiveTransformed)
     drawTable(z, color)
     imageViews(2).icon = new ImageIcon(z.getBufferedImage)
-
-    //var (filteredImage, firstPoint) = filterColors(perspectiveTransformed, 50, 350, 50, 350)
-    //println("transfomed image filtered")
-    //findValueOnFilteredImage(filteredImage, firstPoint)
-    //val filteredTransformed = transformImage(filteredOriginal)
-//    var filteredWithTable = cvCloneImage(filteredOriginal)
-//    drawTable(filteredWithTable, color)
-//    imageViews(3).icon = new ImageIcon(filteredWithTable.getBufferedImage)
-    //
-    //        val src2 = cvCloneImage(originalImage.get)
-    //        trSrc map { p =>
-    //            cvLine(src2, new CvPoint(p.x - 1, p.y), new CvPoint(p.x + 1, p.y), new CvScalar(255, 255, 255, 0), 1, 8, 0)
-    //            cvLine(src2, new CvPoint(p.x, p.y - 1), new CvPoint(p.x, p.y + 1), new CvScalar(255, 255, 255, 0), 1, 8, 0)
-    //        }
-    //        imageViews(0).icon = new ImageIcon(src2.getBufferedImage)
-    //        println("end")
 
   }
 
@@ -599,32 +596,6 @@ object Main extends SimpleSwingApplication {
     if (i != null) {
       cvReleaseImage(i)
     }
-  }
-
-  def minMax(x1: Int, x2: Int, y1: Int, y2: Int) = {
-    val d = new File("/home/vassdoki/Dropbox/darts/v2/cam-ures")
-    val files = d.listFiles.filter(_.isFile).toList
-
-    files map {
-      file: File =>
-        println("File(" + file.getAbsolutePath + " START")
-        val i = cvLoadImage(file.getAbsolutePath)
-
-        for (x <- x1 to x2; y <- y1 to y2) {
-          var (r, g, b) = getRgbPixel(i, x, y)
-          if (x == x1 && y == y1) {
-            pixelCalibration = List(r,g,b)
-          }
-          min(f"R$x%d-$y%d") = Math.min(min(f"R$x%d-$y%d"), r)
-          max(f"R$x%d-$y%d") = Math.max(max(f"R$x%d-$y%d"), r)
-          min(f"G$x%d-$y%d") = Math.min(min(f"G$x%d-$y%d"), g)
-          max(f"G$x%d-$y%d") = Math.max(max(f"G$x%d-$y%d"), g)
-          min(f"B$x%d-$y%d") = Math.min(min(f"B$x%d-$y%d"), b)
-          max(f"B$x%d-$y%d") = Math.max(max(f"B$x%d-$y%d"), b)
-        }
-        println("File(" + file.getAbsolutePath + " END")
-    }
-    (min.toMap, max.toMap)
   }
 
   def loadProperties = {
