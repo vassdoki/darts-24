@@ -65,12 +65,13 @@ object Main extends SimpleSwingApplication {
   var currentImage: IplImage = null
   val mog = new BackgroundSubtractorMOG
   var fileCount = 0
+  var fileAllCount = 0
 
   // CONFIG
   val allowCameraAutoRefresh = true
   val defaultDirectory = "/home/vassdoki/Dropbox/darts/v2/cam"
 
-  val CAMERA_HW_NUM = 0
+  val CAMERA_HW_NUM = 1;
 
   val hslCalibX1 = 1
   val hslCalibX2 = 360
@@ -342,6 +343,8 @@ object Main extends SimpleSwingApplication {
                 if (originalImage.get != null && originalImage.get.width() > 0) {
                   release(perspectiveTransformed)
                   perspectiveTransformed = transformImage(originalImage.get)
+                  cvSaveImage(f"/home/vassdoki/Dropbox/darts/v2/cam/orig-$fileAllCount%03d-$fileCount%04d.jpg", originalImage.get)
+                  fileAllCount += 1
 
                   release(foreground)
                   foreground = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, 1)
@@ -364,10 +367,10 @@ object Main extends SimpleSwingApplication {
                         val modT = if (mod == 2) { "d" } else {if (mod == 3) {"t"} else {""}}
                         throwValue.text = "" + modT + num
                         if (talalat == 2) {
-                          cvSaveImage(f"/home/vassdoki/Dropbox/darts/v2/cam/$fileCount%03d-a-talalat:" +
+                          cvSaveImage(f"/home/vassdoki/Dropbox/darts/v2/cam/$fileCount%04d-a-talalat:" +
                             f"$talalat%02d-feher:$nonZeroCount%04d-score:$modT$num.png", perspectiveTransformed)
                         }
-                        cvSaveImage(f"/home/vassdoki/Dropbox/darts/v2/cam/$fileCount%03d-b-talalat:" +
+                        cvSaveImage(f"/home/vassdoki/Dropbox/darts/v2/cam/$fileCount%04d-c-talalat:" +
                           f"$talalat%02d-feher:$nonZeroCount%04d-score:$modT$num.png", foreground)
                         fileCount = fileCount + 1
 
