@@ -29,8 +29,8 @@ object TransformTest{
     cvWarpPerspective(i2, src2, mat)
     val mat2 = new Mat(src2)
 
-    val color: Scalar = new Scalar(250, 250, 5, 0)
-    drawTable(mat2, color)
+//    val color: Scalar = new Scalar(250, 250, 5, 0)
+//    drawTable(mat2, color)
     mat2
   }
 
