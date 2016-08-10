@@ -6,7 +6,7 @@ import java.awt.image.{DataBufferByte, BufferedImage}
 import java.io.File
 import javax.swing.{SwingUtilities, ImageIcon}
 
-import org.bytedeco.javacpp.opencv_core.{IplImage, Mat}
+import org.bytedeco.javacpp.opencv_core.{Scalar, IplImage, Mat}
 import org.bytedeco.javacv.Java2DFrameConverter
 import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
 import org.bytedeco.javacpp.opencv_imgcodecs._
@@ -160,10 +160,12 @@ object ConfigGui extends SimpleSwingApplication{
       }
       //transCheckbox(i).text = f"${transLabel(i)} ${conf.trSrc(i).x};${conf.trSrc(i).y}"
     }
-    //Swing.onEDT {
+
       imageViews(0).icon = new ImageIcon(toBufferedImage(x))
-      imageViews(1).icon = new ImageIcon(toBufferedImage(TransformTest.transform(x)))
-    //}
+      val y = TransformTest.transform(x)
+      val color: Scalar = new Scalar(250, 250, 5, 0)
+      TransformTest.drawTable(y, color)
+      imageViews(1).icon = new ImageIcon(toBufferedImage(y))
   }
 
   def toBufferedImage(mat: Mat): BufferedImage = {
