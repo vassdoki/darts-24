@@ -17,9 +17,12 @@ class CaptureUtil(videoDeviceNumber: Int) {
   println("Frame rate: " + rate + "fps")
   val frame       = new Mat()
   //  val canvasFrame = new CanvasFrame("Extracted Frame", 1)
+  capture.set(CAP_PROP_FRAME_WIDTH, 960)
+  capture.set(CAP_PROP_FRAME_HEIGHT, 720)
+
   val width       = capture.get(CAP_PROP_FRAME_WIDTH).toInt
   val height      = capture.get(CAP_PROP_FRAME_HEIGHT).toInt
-
+  println(f"camera width: $width hegith: $height")
 
   def captureFrame: Mat = {
     capture.read(frame)

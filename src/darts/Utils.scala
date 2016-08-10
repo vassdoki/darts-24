@@ -20,7 +20,7 @@ object Utils {
     if (prop == null) {
       prop = new Properties()
       var input: InputStream = null
-      input = new FileInputStream("/home/vassdoki/git/darts-fedex/darts-opencv/config.properties")
+      input = new FileInputStream("config.properties")
       prop.load(input)
 
       u = new Utils()
