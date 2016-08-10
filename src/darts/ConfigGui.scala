@@ -37,8 +37,8 @@ object ConfigGui extends SimpleSwingApplication{
   }
   val transCheckbox: List[CheckBox] = List.fill(4) {new CheckBox}
   var transCheckboxSelected: Int = 0
-  val transLabel = List("bull", "4", "14", "17")
-  //val transLabel = List("9a", "4a", "15a", "16a")
+  //val transLabel = List("bull", "4", "14", "17")
+  val transLabel = List("9a", "4a", "15t", "16t")
   val fpsLabel = new Label
   var imgCount = 0
   var openedImage: Mat = null
@@ -160,10 +160,10 @@ object ConfigGui extends SimpleSwingApplication{
       }
       //transCheckbox(i).text = f"${transLabel(i)} ${conf.trSrc(i).x};${conf.trSrc(i).y}"
     }
-    Swing.onEDT {
+    //Swing.onEDT {
       imageViews(0).icon = new ImageIcon(toBufferedImage(x))
       imageViews(1).icon = new ImageIcon(toBufferedImage(TransformTest.transform(x)))
-    }
+    //}
   }
 
   def toBufferedImage(mat: Mat): BufferedImage = {
@@ -233,7 +233,7 @@ object ConfigGui extends SimpleSwingApplication{
       case Key.Down => conf.trSrc(transCheckboxSelected).y  += 1
       case Key.Left => conf.trSrc(transCheckboxSelected).x  -= 1
       case Key.Right => conf.trSrc(transCheckboxSelected).x  += 1
-
+      case _ => {}
     }
     transCheckbox(transCheckboxSelected).text = f"${transLabel(transCheckboxSelected)} ${conf.trSrc(transCheckboxSelected).x};${conf.trSrc(transCheckboxSelected).y}"
     openedImageClone.release()

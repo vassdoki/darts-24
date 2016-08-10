@@ -20,7 +20,8 @@ object TransformTest{
   def transform(image: Mat): Mat = {
     val config = Utils.getProperties
     val src: Array[Float] = (0 to 3).map { i => List(config.trSrc(i).x.toFloat, config.trSrc(i).y.toFloat) }.flatten.toArray
-    val dst: Array[Float] = Array(200f, 200f, 333f, 131f, 66f, 131f, 223f, 348f).map { f => f * 2 }
+    //val dst: Array[Float] = Array(200f, 200f, 333f, 131f, 66f, 131f, 223f, 348f).map { f => f * 2 }
+    val dst: Array[Float] = Array(134f, 262f,   666f, 262f,   666f, 538f,   134f, 538f)
     var mat = new CvMat(new Mat(3, 3, CV_64F))
     mat = cvGetPerspectiveTransform(src, dst, mat)
     val i2 = new CvMat(image)
@@ -42,10 +43,10 @@ object TransformTest{
     for (d <- 9 to 351 by 18) {
       line(src, rotatePoint(bull, d, 17), rotatePoint(bull, d, 300), color,2, 8, 0)
     }
-    drawCross(src, 400, 400)
+    drawCross(src, 266, 262)
     drawCross(src, 666, 262)
-    drawCross(src, 132, 262)
-    drawCross(src, 446, 696)
+    drawCross(src, 666, 538)
+    drawCross(src, 266, 538)
     src
   }
 
