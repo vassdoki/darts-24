@@ -7,7 +7,7 @@ import java.io.File
 import javax.swing.{SwingUtilities, ImageIcon}
 
 import darts.BackgroundSubtractorTest
-import darts.util.{CaptureTrait, CaptureCamera, Utils}
+import darts.util._
 import org.bytedeco.javacpp.opencv_core.{Scalar, IplImage, Mat}
 import org.bytedeco.javacv.Java2DFrameConverter
 import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
@@ -43,7 +43,7 @@ object GameUi extends  SimpleSwingApplication{
   var imgCount = 0
   var openedImage: Mat = null
   var openedImageClone: Mat = null
-  val conf = Utils.getProperties
+  val conf = Config.getProperties
 
   val defaultDirectory = "/home/vassdoki/darts/v2/cam-aug11"
   private lazy val fileChooser = new FileChooser(new File(defaultDirectory))
@@ -94,11 +94,11 @@ object GameUi extends  SimpleSwingApplication{
   }
 
   def updateTransformCheck(x: Mat): Unit = {
-    imageViews(0).icon = new ImageIcon(Utils.toBufferedImage(x))
-    val y = TransformTest.transform(x)
+    imageViews(0).icon = new ImageIcon(CvUtil.toBufferedImage(x))
+    val y = CvUtil.transform(x)
     val color: Scalar = new Scalar(250, 250, 5, 0)
-    TransformTest.drawTable(y, color)
-    imageViews(1).icon = new ImageIcon(Utils.toBufferedImage(y))
+    CvUtil.drawTable(y, color)
+    imageViews(1).icon = new ImageIcon(CvUtil.toBufferedImage(y))
   }
 
 

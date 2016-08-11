@@ -21,15 +21,11 @@ import org.bytedeco.javacpp.opencv_video._
 class BackgroundSubtractorTest {
 
   val CAMERA_DEV_NUM = -1
-  val SAVE_INCOMING_IMAGES = false
   val COMMAND_LINE = true
   val INPUT_DIR = "/home/vassdoki/darts/v2/test"
   val OUTPUT_DIR = "/home/vassdoki/darts/v2/d"
 
-  var imageCount = 0
 
-  private val bull = new Point(400, 400)
-  val distancesFromBull = List(14, 28, 174, 192, 284, 300)
   var cameraAllowed = false
   //var maxOutputNumber = 9999999
 
@@ -80,8 +76,6 @@ class BackgroundSubtractorTest {
       imageMat.release()
     }
     imageMat = camera.captureFrame
-    if (SAVE_INCOMING_IMAGES) imwrite(f"$OUTPUT_DIR/$imageCount%05d.jpg", imageMat)
-    imageCount += 1
     if (imageMat == null) {
       //maxOutputNumber = -1
     } else {
@@ -94,15 +88,13 @@ class BackgroundSubtractorTest {
         imageMat.release()
       }
       imageMat = camera.captureFrame
-      if (!COMMAND_LINE) GameUi.updateImage(0,new ImageIcon(Utils.toBufferedImage(imageMat)))
-      if (SAVE_INCOMING_IMAGES) imwrite(f"$OUTPUT_DIR/$imageCount%05d.jpg", imageMat)
-      imageCount += 1
+      if (!COMMAND_LINE) GameUi.updateImage(0,new ImageIcon(CvUtil.toBufferedImage(imageMat)))
       if (imageMat == null) {
         break
       } else {
         mog.apply(imageMat, mask, 0.4)
         mog2.apply(imageMat, maskBelso, 0.4)
-        if (!COMMAND_LINE) GameUi.updateImage(3,new ImageIcon(Utils.toBufferedImage(mask)))
+        if (!COMMAND_LINE) GameUi.updateImage(3,new ImageIcon(CvUtil.toBufferedImage(mask)))
       }
 
       if (countNonZero(maskBelso) > 1000 && prevImageMat != null) {
@@ -112,8 +104,7 @@ class BackgroundSubtractorTest {
         //mog2.clear()
         mog2.apply(prevImageMat, maskBelso, 1)
         mog.apply(imageMat, mask, 0.4)
-        if (!COMMAND_LINE) GameUi.updateImage(3,new ImageIcon(Utils.toBufferedImage(maskBelso)))
-        if (SAVE_INCOMING_IMAGES) imwrite(f"$OUTPUT_DIR/$imageCount%05d.jpg", imageMat)
+        if (!COMMAND_LINE) GameUi.updateImage(3,new ImageIcon(CvUtil.toBufferedImage(maskBelso)))
         var prevNonZero = -1
         var result_mod = 0
         var result_num = 0
@@ -133,14 +124,14 @@ class BackgroundSubtractorTest {
           val kernelSize = 3
           medianBlur(maskBelso, dest, kernelSize)
           medianBlur(dest, dest2, kernelSize + 2)
-          val dest3 = TransformTest.transform(dest2)
+          val dest3 = CvUtil.transform(dest2)
           // TODO: nem értem miért nem jó a második, ami a MAT-tal dolgozik
           val tempIplImage = new IplImage(dest3)
           val (x, y) = findTopWhite(tempIplImage)
           tempIplImage.release()
           //val (x,y) = findTopWhite(dest3)
           val color: Scalar = new Scalar(250, 250, 5, 0)
-          TransformTest.drawTable(dest3, color)
+          CvUtil.drawTable(dest3, color)
 
           val (mod, num) = identifyNumber(new Point(x, y))
           if (prevNonZero > nonZero) {
@@ -148,7 +139,7 @@ class BackgroundSubtractorTest {
             result_num = num
           }
 
-          if (!COMMAND_LINE) GameUi.updateImage(2,new ImageIcon(Utils.toBufferedImage(dest2)))
+          if (!COMMAND_LINE) GameUi.updateImage(2,new ImageIcon(CvUtil.toBufferedImage(dest2)))
           //imwrite(f"$OUTPUT_DIR/$i%05d-b-mask-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", maskBelso)
           //imwrite(f"$OUTPUT_DIR/$i%05d-c-medi-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", dest2)
           //imwrite(f"$OUTPUT_DIR/$i%05d-d-resu-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", dest3)
@@ -162,7 +153,7 @@ class BackgroundSubtractorTest {
             8, // Line type.
             false)
 
-          if (!COMMAND_LINE) GameUi.updateImage(1,new ImageIcon(Utils.toBufferedImage(dest3)))
+          if (!COMMAND_LINE) GameUi.updateImage(1,new ImageIcon(CvUtil.toBufferedImage(dest3)))
           //println(f"${cameraFile.lastFilename};$i;$talalat;$nonZero;$mod;$num")
           //out.println(f"${cameraFile.lastFilename};$i;$talalat;$nonZero;$mod;$num")
           //out.flush()
@@ -175,15 +166,13 @@ class BackgroundSubtractorTest {
             imageMat.release()
           }
           imageMat = camera.captureFrame
-          if (SAVE_INCOMING_IMAGES) imwrite(f"$OUTPUT_DIR/$imageCount%05d.jpg", imageMat)
-          imageCount += 1
-          if (!COMMAND_LINE) GameUi.updateImage(0,new ImageIcon(Utils.toBufferedImage(imageMat)))
+          if (!COMMAND_LINE) GameUi.updateImage(0,new ImageIcon(CvUtil.toBufferedImage(imageMat)))
 
           prevNonZero = nonZero
           talalat += 1
         }
 
-        val dest4 = TransformTest.transform(imageMat)
+        val dest4 = CvUtil.transform(imageMat)
         imwrite(f"$OUTPUT_DIR/$i%05d-a-orig-${cameraFile.lastFilename}-resu-${talalat}%02d-res:$result_mod-$result_num.jpg", dest4)
         dest4.release()
       } else {
@@ -219,15 +208,14 @@ class BackgroundSubtractorTest {
     (j % i.cols(), j / i.rows())
   }
   def identifyNumber(p: Point): Pair[Int, Int] = {
-    val degree = getDegreeFromBull(p)
-    val distance = getDistanceFromBull(p)
+    val degree = CvUtil.getDegreeFromBull(p)
+    val distance = CvUtil.getDistanceFromBull(p)
     // 6-os közepe a 0 fok és óra járásával ellentétes irányba megy
-    val nums = List(6, 13, 4, 18, 1, 20, 5, 12, 9, 14, 11, 8, 16, 7, 19, 3, 17, 2, 15, 10)
 
     val int: Int = Math.floor((degree + 9) / 18).toInt
-    val number = if (int > 19) nums(0) else nums(int)
+    val number = if (int > 19) Config.nums(0) else Config.nums(int)
 
-    val circleNumber: Int = distancesFromBull filter { dfb => dfb < distance } length
+    val circleNumber: Int = Config.distancesFromBull filter { dfb => dfb < distance } length
 
     circleNumber match {
       case 0 => (2, 25)
@@ -237,38 +225,6 @@ class BackgroundSubtractorTest {
       case _ => (1, number)
     }
   }
-
-  def getDistanceFromBull(p: Point): Double = {
-    Math.sqrt(sq(bull.x - p.x) + sq(bull.y - p.y))
-  }
-
-
-  def getDegreeFromBull(p: Point) = getDegree(bull, p)
-
-  def getDegree(bull: Point, p: Point) = {
-    val x = p.x - bull.x
-    val y = bull.y - p.y
-    var v = 180 * Math.atan2(y, x) / Math.PI
-    if (v > 180) {
-      v = 180
-    }
-    if (v < -180) {
-      v = -180
-    }
-    if (v < 0) {
-      v += 360
-    }
-    if (v == 0) {
-      //Log.i(TAG, "arch: y: " + y + " x: " + x + " archtan: " + v);
-    }
-    v
-  }
-
-  def getDistanceFromBull(p: CvPoint): Double = {
-    Math.sqrt(sq(bull.x - p.x) + sq(bull.y - p.y))
-  }
-
-  def sq(a: Float): Float = a * a
 
   def createMog: BackgroundSubtractorMOG2 = {
     var mog = createBackgroundSubtractorMOG2()

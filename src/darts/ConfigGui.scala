@@ -6,7 +6,7 @@ import java.awt.image.{DataBufferByte, BufferedImage}
 import java.io.File
 import javax.swing.{SwingUtilities, ImageIcon}
 
-import darts.util.{CaptureTrait, CaptureCamera, Utils}
+import darts.util.{CvUtil, CaptureTrait, CaptureCamera, Config}
 import org.bytedeco.javacpp.opencv_core.{Scalar, IplImage, Mat}
 import org.bytedeco.javacv.Java2DFrameConverter
 import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
@@ -45,9 +45,9 @@ object ConfigGui extends SimpleSwingApplication{
   var imgCount = 0
   var openedImage: Mat = null
   var openedImageClone: Mat = null
-  val conf = Utils.getProperties
+  val conf = Config.getProperties
 
-  val defaultDirectory = "/home/vassdoki/darts/v2/cam"
+  val defaultDirectory = "/home/vassdoki/darts/v2/cam-aug11"
   private lazy val fileChooser = new FileChooser(new File(defaultDirectory))
 
 
@@ -68,6 +68,9 @@ object ConfigGui extends SimpleSwingApplication{
         cursor = getPredefinedCursor(DEFAULT_CURSOR)
       }
     }
+    val saveSettingsAction = Action("Save config") {
+      Config.saveProperties
+    }
 
     for (i <- 0 to 3) {
       transCheckbox(i).text = f"${transLabel(i)} ${conf.trSrc(i).x};${conf.trSrc(i).y}"
@@ -78,6 +81,7 @@ object ConfigGui extends SimpleSwingApplication{
     val buttonsPanel = new GridPanel(rows0 = 0, cols0 = 1) {
       contents += cameraCheckbox
       contents += new Button(openImageAction)
+      contents += new Button(saveSettingsAction)
       contents += fpsLabel
       for (i <- 0 to 3) { contents += transCheckbox(i) }
       vGap = 1
@@ -156,17 +160,17 @@ object ConfigGui extends SimpleSwingApplication{
   def updateTransformCheck(x: Mat): Unit = {
     for (i <- 0 to 3) {
       if (transCheckbox(i).selected) {
-        TransformTest.drawCross(x, conf.trSrc(i).x, conf.trSrc(i).y, 1)
+        CvUtil.drawCross(x, conf.trSrc(i).x, conf.trSrc(i).y, 1)
       } else {
-        TransformTest.drawCross(x, conf.trSrc(i).x, conf.trSrc(i).y, 0)
+        CvUtil.drawCross(x, conf.trSrc(i).x, conf.trSrc(i).y, 0)
       }
       //transCheckbox(i).text = f"${transLabel(i)} ${conf.trSrc(i).x};${conf.trSrc(i).y}"
     }
 
       imageViews(0).icon = new ImageIcon(toBufferedImage(x))
-      val y = TransformTest.transform(x)
+      val y = CvUtil.transform(x)
       val color: Scalar = new Scalar(250, 250, 5, 0)
-      TransformTest.drawTable(y, color)
+      CvUtil.drawTable(y, color)
       imageViews(1).icon = new ImageIcon(toBufferedImage(y))
   }
 
@@ -233,7 +237,7 @@ object ConfigGui extends SimpleSwingApplication{
 
   def pressed(e: scala.swing.event.Key.Value) = {
     e match {
-      case Key.Up => conf.trSrc(transCheckboxSelected).y  -= 1
+      case Key.Up => conf.trSrc(transCheckboxSelected).y  = conf.trSrc(transCheckboxSelected).y - 1
       case Key.Down => conf.trSrc(transCheckboxSelected).y  += 1
       case Key.Left => conf.trSrc(transCheckboxSelected).x  -= 1
       case Key.Right => conf.trSrc(transCheckboxSelected).x  += 1

@@ -13,6 +13,7 @@ import scala.math._
  */
 class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
   val capture: VideoCapture = new VideoCapture(videoDeviceNumber)
+  var imageNumber = 0
 
   val rate = capture.get(CAP_PROP_FPS)
   println("Frame rate: " + rate + "fps")
@@ -27,6 +28,7 @@ class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
 
   def captureFrame: Mat = {
     capture.read(frame)
+    imageNumber += 1
     frame
   }
 

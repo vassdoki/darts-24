@@ -12,6 +12,7 @@ class CaptureFile (inputFiles: Seq[File]) extends CaptureTrait{
   val inputFileCounter = 0
   var rest: Seq[File] = inputFiles
   var lastFilename: String = null
+  var imageNumber  = 0
 
   val frame = new Mat()
 
@@ -22,6 +23,7 @@ class CaptureFile (inputFiles: Seq[File]) extends CaptureTrait{
       val file = rest.head
       lastFilename = file.getName
       rest = rest.tail
+      imageNumber += 1
       imread(file.getAbsolutePath)
     }
   }
