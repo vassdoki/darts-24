@@ -15,7 +15,7 @@ import org.bytedeco.javacpp.opencv_imgproc._
  * Created by vassdoki on 2016.08.08..
  */
 object TransformTest{
-  val image: Mat = imread("/home/vassdoki/Dropbox/darts/v2/cam/orig-0001-0000.jpg")
+  val image: Mat = imread("/home/vassdoki/darts/v2/cam/orig-0001-0000.jpg")
 
   def transform(image: Mat): Mat = {
     val config = Utils.getProperties

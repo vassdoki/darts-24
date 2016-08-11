@@ -20,7 +20,10 @@ import org.bytedeco.javacpp.opencv_video._
  */
 class BackgroundSubtractorTest {
 
-  val CAMERA_DEV_NUM = 1
+  val CAMERA_DEV_NUM = -1
+  val SAVE_INCOMING_IMAGES = false
+  val COMMAND_LINE = true
+
   var imageCount = 0
 
   private val bull = new Point(400, 400)
@@ -29,14 +32,16 @@ class BackgroundSubtractorTest {
   //var maxOutputNumber = 9999999
 
   def commandLine = {
-    val d = new File("/home/vassdoki/Dropbox/darts/v2/cam")
-    val x: Seq[File] = Seq(d.listFiles.filter(_.isFile).filter(_.getName.startsWith("orig-")).sorted: _*)
+    val d = new File("/home/vassdoki/darts/v2/cam-aug11")
+    val x: Seq[File] = Seq(d.listFiles.sorted: _*)
     val camera = CaptureTrait.get(x)
+    runRecognizer(camera)
+    CaptureTrait.releaseCamera()
   }
 
   def continousCameraUpdate = {
     //val capture = CaptureTrait.get(CAMERA_DEV_NUM)
-    val d = new File("/home/vassdoki/Dropbox/darts/v2/cam")
+    val d = new File("/home/vassdoki/darts/v2/cam")
     var capture: CaptureTrait = null
     if (CAMERA_DEV_NUM >= 0) {
       capture = CaptureTrait.get(CAMERA_DEV_NUM)
@@ -51,7 +56,7 @@ class BackgroundSubtractorTest {
 
   def runRecognizer(camera: CaptureTrait) = {
     // TODO: Itt miért nem működik az implicit?
-    //val cameraFile: CaptureFile = camera.getSelf.asInstanceOf[CaptureFile]
+    val cameraFile: CaptureFile = camera.getSelf.asInstanceOf[CaptureFile]
 
     var mask: Mat = new Mat()
 
@@ -60,62 +65,65 @@ class BackgroundSubtractorTest {
 
     var i = 0
     var first = false
-    var image: Mat = null
-    var prevImage: Mat = null
+    var imageMat: Mat = null
+    var prevImageMat: Mat = null
     var talalat = 0
 
     val mog = createMog
     val mog2 = createMog
 
     // Kezdő kép beolvasása
-    image = camera.captureFrame
-    imwrite(f"/tmp/d/$imageCount%05d.jpg", image)
+    if (imageMat != null) {
+      imageMat.release()
+    }
+    imageMat = camera.captureFrame
+    if (SAVE_INCOMING_IMAGES) imwrite(f"/tmp/d/$imageCount%05d.jpg", imageMat)
     imageCount += 1
-    if (image == null) {
+    if (imageMat == null) {
       //maxOutputNumber = -1
     } else {
-      mog.apply(image, mask, 1)
+      mog.apply(imageMat, mask, 1)
     }
 
 
     while (cameraAllowed) {
-      if (image != null) {
-        image.release()
+      if (imageMat != null) {
+        imageMat.release()
       }
-      image = camera.captureFrame
-      GameUi.updateImage(0,new ImageIcon(Utils.toBufferedImage(image)))
-      imwrite(f"/tmp/d/$imageCount%05d.jpg", image)
+      imageMat = camera.captureFrame
+      if (!COMMAND_LINE) GameUi.updateImage(0,new ImageIcon(Utils.toBufferedImage(imageMat)))
+      if (SAVE_INCOMING_IMAGES) imwrite(f"/tmp/d/$imageCount%05d.jpg", imageMat)
       imageCount += 1
-      if (image == null) {
+      if (imageMat == null) {
         break
       } else {
-        mog.apply(image, mask, 0.4)
-        GameUi.updateImage(3,new ImageIcon(Utils.toBufferedImage(mask)))
+        mog.apply(imageMat, mask, 0.4)
+        if (!COMMAND_LINE) GameUi.updateImage(3,new ImageIcon(Utils.toBufferedImage(mask)))
       }
 
-      if (countNonZero(mask) > 500 && prevImage != null) {
+      if (countNonZero(mask) > 500 && prevImageMat != null) {
         talalat = 1
         //maxOutputNumber -= 1
 
-        image = camera.captureFrame
-        imwrite(f"/tmp/d/$imageCount%05d-eldobva1.jpg", image)
-        image = camera.captureFrame
-        imwrite(f"/tmp/d/$imageCount%05d-eldobva2.jpg", image)
-        image = camera.captureFrame
-        imwrite(f"/tmp/d/$imageCount%05d-eldobva3.jpg", image)
+        imageMat = camera.captureFrame
+        if (SAVE_INCOMING_IMAGES) imwrite(f"/tmp/d/$imageCount%05d-eldobva1.jpg", imageMat)
+        imageMat = camera.captureFrame
+        if (SAVE_INCOMING_IMAGES) imwrite(f"/tmp/d/$imageCount%05d-eldobva2.jpg", imageMat)
+        imageMat = camera.captureFrame
+        if (SAVE_INCOMING_IMAGES) imwrite(f"/tmp/d/$imageCount%05d-eldobva3.jpg", imageMat)
         imageCount += 1
 
         mog2.clear()
-        mog2.apply(prevImage, mask, 1)
-        mog.apply(image, mask, 0.4)
-        GameUi.updateImage(3,new ImageIcon(Utils.toBufferedImage(mask)))
-        imwrite(f"/tmp/d/$imageCount%05d.jpg", image)
+        mog2.apply(prevImageMat, mask, 1)
+        mog.apply(imageMat, mask, 0.4)
+        if (!COMMAND_LINE) GameUi.updateImage(3,new ImageIcon(Utils.toBufferedImage(mask)))
+        if (SAVE_INCOMING_IMAGES) imwrite(f"/tmp/d/$imageCount%05d.jpg", imageMat)
         var prevNonZero = -1
         var result_mod = 0
         var result_num = 0
 
         while (talalat < 15) {
-          mog2.apply(image, mask, 0)
+          mog2.apply(imageMat, mask, 0)
           val nonZero = countNonZero(mask)
           if (talalat == 1) {
             prevNonZero = nonZero
@@ -141,7 +149,7 @@ class BackgroundSubtractorTest {
             result_num = num
           }
 
-          GameUi.updateImage(2,new ImageIcon(Utils.toBufferedImage(dest2)))
+          if (!COMMAND_LINE) GameUi.updateImage(2,new ImageIcon(Utils.toBufferedImage(dest2)))
           //imwrite(f"/tmp/d/$i%05d-b-mask-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", mask)
           //imwrite(f"/tmp/d/$i%05d-c-medi-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", dest2)
           //imwrite(f"/tmp/d/$i%05d-d-resu-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", dest3)
@@ -153,34 +161,45 @@ class BackgroundSubtractorTest {
             8, // Line type.
             false)
 
-          GameUi.updateImage(1,new ImageIcon(Utils.toBufferedImage(dest3)))
+          if (!COMMAND_LINE) GameUi.updateImage(1,new ImageIcon(Utils.toBufferedImage(dest3)))
           //println(f"${cameraFile.lastFilename};$i;$talalat;$nonZero;$mod;$num")
           //out.println(f"${cameraFile.lastFilename};$i;$talalat;$nonZero;$mod;$num")
           //out.flush()
 
           dest.release()
           dest2.release()
+          dest3.release()
 
-          image = camera.captureFrame
-          imwrite(f"/tmp/d/$imageCount%05d.jpg", image)
+          if (imageMat != null) {
+            imageMat.release()
+          }
+          imageMat = camera.captureFrame
+          if (SAVE_INCOMING_IMAGES) imwrite(f"/tmp/d/$imageCount%05d.jpg", imageMat)
           imageCount += 1
-          GameUi.updateImage(0,new ImageIcon(Utils.toBufferedImage(image)))
+          if (!COMMAND_LINE) GameUi.updateImage(0,new ImageIcon(Utils.toBufferedImage(imageMat)))
 
           prevNonZero = nonZero
           talalat += 1
         }
+
+        val dest4 = TransformTest.transform(imageMat)
+        imwrite(f"/tmp/d/$i%05d-d-orig-${cameraFile.lastFilename}-resu-${talalat}%02d-res:$result_mod-$result_num.jpg", dest4)
+        dest4.release()
         while (talalat < 20) {
-          image = camera.captureFrame
-          mog.apply(image, mask, 0.4)
+          if (imageMat != null) {
+            imageMat.release()
+          }
+          imageMat = camera.captureFrame
+          mog.apply(imageMat, mask, 0.4)
           talalat += 1
         }
       } else {
         talalat = 0
       }
-      if (prevImage != null) {
-        prevImage.release()
+      if (prevImageMat != null) {
+        prevImageMat.release()
       }
-      prevImage = image.clone()
+      prevImageMat = imageMat.clone()
 
       GameUi.imgCount += 1
       i += 1
@@ -195,6 +214,7 @@ class BackgroundSubtractorTest {
     while((d.get(j) == 0 || d.get(j+1) == 0) && j < 960 * 720) {
       j = j + 2
     }
+    i.release()
     (j % i.width(), j / i.width())
   }
   def findTopWhite(i: Mat) : (Int, Int) = {
@@ -278,4 +298,10 @@ class BackgroundSubtractorTest {
     mog
   }
 
+}
+
+object BackgroundSubtractorTest extends App {
+  val bs = new BackgroundSubtractorTest
+  bs.cameraAllowed = true
+  bs.commandLine
 }

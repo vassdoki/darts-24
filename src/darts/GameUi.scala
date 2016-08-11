@@ -45,7 +45,7 @@ object GameUi extends  SimpleSwingApplication{
   var openedImageClone: Mat = null
   val conf = Utils.getProperties
 
-  val defaultDirectory = "/home/vassdoki/Dropbox/darts/v2/cam"
+  val defaultDirectory = "/home/vassdoki/darts/v2/cam-aug11"
   private lazy val fileChooser = new FileChooser(new File(defaultDirectory))
 
 
