@@ -51,11 +51,35 @@ class BackgroundSubtractorTest {
     CaptureTrait.releaseCamera()
   }
 
-
   def runRecognizer(camera: CaptureTrait) = {
-    // TODO: Itt miért nem működik az implicit?
-    val cameraFile: CaptureFile = camera.getSelf.asInstanceOf[CaptureFile]
+    val mog = createMog
+    var imageMat: Mat = null
+    var mask: Mat = new Mat()
+    var countZero = 0
 
+    // capture the first image, initialize mog
+    imageMat = camera.captureFrame
+    mog.apply(imageMat, mask, 1)
+
+    try {
+      while (cameraAllowed) {
+        imageMat = camera.captureFrame
+        mog.apply(imageMat, mask, 0.5)
+        countZero = countNonZero(mask)
+        println(f"${camera.lastFilename}%30s zero: $countZero")
+        if (countZero > 0) {
+          imwrite(f"$OUTPUT_DIR/${camera.imageNumber}%05d-${camera.lastFilename}%30s zero: $countZero.jpg", mask)
+        }
+      }
+    }catch {
+      case e: Exception => {
+        println(e)
+      }
+    }
+  }
+
+
+  def runRecognizerOld(camera: CaptureTrait) = {
     var mask: Mat = new Mat()
     var maskBelso: Mat = new Mat()
 
@@ -173,7 +197,7 @@ class BackgroundSubtractorTest {
         }
 
         val dest4 = CvUtil.transform(imageMat)
-        imwrite(f"$OUTPUT_DIR/$i%05d-a-orig-${cameraFile.lastFilename}-resu-${talalat}%02d-res:$result_mod-$result_num.jpg", dest4)
+        imwrite(f"$OUTPUT_DIR/$i%05d-a-orig-${camera.lastFilename}-resu-${talalat}%02d-res:$result_mod-$result_num.jpg", dest4)
         dest4.release()
       } else {
         talalat = 0

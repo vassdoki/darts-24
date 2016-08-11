@@ -11,6 +11,7 @@ trait CaptureTrait {
   def captureFrame: Mat
   def release
   def getSelf: Any
+  def lastFilename: String
   var imageNumber: Int
 }
 

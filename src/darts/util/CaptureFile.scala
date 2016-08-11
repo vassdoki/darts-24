@@ -18,7 +18,7 @@ class CaptureFile (inputFiles: Seq[File]) extends CaptureTrait{
 
   override def captureFrame: Mat = {
     if (rest.size == 0) {
-      null
+      throw new Exception("No more file from CaptureFile")
     } else {
       val file = rest.head
       lastFilename = file.getName

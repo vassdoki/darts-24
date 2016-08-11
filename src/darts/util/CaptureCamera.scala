@@ -32,6 +32,10 @@ class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
     frame
   }
 
+  def lastFilename: String = {
+    f"cam-video$videoDeviceNumber-$imageNumber"
+  }
+
   def release = {
     capture.release()
   }
