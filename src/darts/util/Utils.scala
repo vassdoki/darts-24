@@ -1,8 +1,13 @@
-package darts
+package darts.util
 
 import java.awt.Point
-import java.io.{FileOutputStream, FileInputStream, InputStream}
+import java.awt.image.BufferedImage
+import java.io.{FileInputStream, FileOutputStream, InputStream}
 import java.util.Properties
+
+import org.bytedeco.javacpp.opencv_core.Mat
+import org.bytedeco.javacv.Java2DFrameConverter
+import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
 
 import scala.collection.mutable
 
@@ -43,6 +48,12 @@ object Utils {
 
     prop.store(output, null)
     output.close
+  }
+
+  def toBufferedImage(mat: Mat): BufferedImage = {
+    val openCVConverter = new ToMat()
+    val java2DConverter = new Java2DFrameConverter()
+    java2DConverter.convert(openCVConverter.convert(mat))
   }
 
 }

@@ -1,18 +1,19 @@
-package darts
+package darts.util
+
+import java.io.File
 
 import org.bytedeco.javacpp.opencv_core.Mat
-import org.bytedeco.javacpp.opencv_videoio._
 import org.bytedeco.javacpp.opencv_imgcodecs._
-import org.bytedeco.javacpp.opencv_imgproc._
-import org.bytedeco.javacv.{OpenCVFrameConverter, CanvasFrame}
+import org.bytedeco.javacpp.opencv_videoio._
 
 import scala.math._
 
 /**
  * Created by vassdoki on 2016.08.07..
  */
-class CaptureUtil(videoDeviceNumber: Int) {
+class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
   val capture: VideoCapture = new VideoCapture(videoDeviceNumber)
+
   val rate = capture.get(CAP_PROP_FPS)
   println("Frame rate: " + rate + "fps")
   val frame       = new Mat()
@@ -57,21 +58,5 @@ class CaptureUtil(videoDeviceNumber: Int) {
       }
     }
   }
-}
-
-object CaptureUtil {
-  var captureUtil: CaptureUtil = null
-  def get(videoDeviceNumber: Int): CaptureUtil = {
-    if (captureUtil == null) {
-      captureUtil = new CaptureUtil(videoDeviceNumber)
-    }
-    captureUtil
-  }
-
-  def releaseCamera() = {
-    if (captureUtil != null) {
-      captureUtil.release
-      captureUtil = null
-    }
-  }
+  def getSelf: CaptureCamera = this
 }

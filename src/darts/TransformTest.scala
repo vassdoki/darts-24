@@ -1,8 +1,8 @@
 package darts
 
 import java.nio.FloatBuffer
-import java.util
 
+import darts.util.Utils
 import org.bytedeco.javacpp.helper.opencv_core.CvArr
 import org.bytedeco.javacpp.presets.opencv_core
 import org.bytedeco.javacpp.{FloatPointer, IntPointer}

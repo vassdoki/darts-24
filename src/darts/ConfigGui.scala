@@ -6,6 +6,7 @@ import java.awt.image.{DataBufferByte, BufferedImage}
 import java.io.File
 import javax.swing.{SwingUtilities, ImageIcon}
 
+import darts.util.{CaptureTrait, CaptureCamera, Utils}
 import org.bytedeco.javacpp.opencv_core.{Scalar, IplImage, Mat}
 import org.bytedeco.javacv.Java2DFrameConverter
 import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
@@ -30,6 +31,7 @@ import scala.swing.event.{ButtonClicked, WindowClosing, MouseReleased}
  */
 object ConfigGui extends SimpleSwingApplication{
 
+  val CAMERA_DEV_NUM = 1
   var cameraAllowed = false
   val cameraCheckbox = new CheckBox("Use Camera")
   val imageViews: List[Label] = List.fill(2) {
@@ -188,7 +190,7 @@ object ConfigGui extends SimpleSwingApplication{
   }
 
   def continousCameraUpdate = {
-    val capture = CaptureUtil.get(1)
+    val capture = CaptureTrait.get(CAMERA_DEV_NUM)
     var mat: Mat = null
     while (cameraAllowed) {
       mat = capture.captureFrame
@@ -197,7 +199,7 @@ object ConfigGui extends SimpleSwingApplication{
       updateImage(0, new ImageIcon(toBufferedImage(mat)))
       Thread.sleep(20)
     }
-    CaptureUtil.releaseCamera()
+    CaptureTrait.releaseCamera()
   }
 
   def updateImage(imgNum: Int, imageIcon: ImageIcon) = {
