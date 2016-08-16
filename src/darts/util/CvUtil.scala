@@ -29,16 +29,33 @@ object CvUtil {
 
 
   def drawTable(src: Mat, color: Scalar) = {
-    val bull: Point = new Point(400, 400)
+    val bull: Point = new Point(Config.bull.x, Config.bull.y)
 
-    Config.distancesFromBull map { dist => circle(src, bull, dist, color, 2, 8, 0) }
+    Config.distancesFromBull map { dist => circle(src, bull, dist, color, 4, 8, 0) }
     for (d <- 9 to 351 by 18) {
-      line(src, rotatePoint(bull, d, 17), rotatePoint(bull, d, 300), color,2, 8, 0)
+      line(src, rotatePoint(bull, d, Config.distancesFromBull(1)), rotatePoint(bull, d, Config.distancesFromBull(5)), color,4, 8, 0)
     }
     drawCross(src, Config.transformationDst(0).toInt, Config.transformationDst(1).toInt)
     drawCross(src, Config.transformationDst(2).toInt, Config.transformationDst(3).toInt)
     drawCross(src, Config.transformationDst(4).toInt, Config.transformationDst(5).toInt)
     drawCross(src, Config.transformationDst(6).toInt, Config.transformationDst(7).toInt)
+    src
+  }
+
+  def drawNumbers(src: Mat, color: Scalar) = {
+    val bull: Point = new Point(Config.bull.x, Config.bull.y)
+
+    var i = 0
+    for (d <- 9 to 351 by 18) {
+      putText(src, f"${Config.nums(i)}", rotatePoint(bull, d-9, (Config.distancesFromBull(5)*1.1).toInt),
+        FONT_HERSHEY_PLAIN, // font type
+        3, // font scale
+        color, // text color (here white)
+        3, // text thickness
+        8, // Line type.
+        false)
+      i += 1
+    }
     src
   }
 
@@ -94,5 +111,10 @@ object CvUtil {
 
   def sq(a: Float): Float = a * a
 
+  def releaseMat(m: Mat): Unit = {
+    if (m != null) {
+      m.release()
+    }
+  }
 
 }
