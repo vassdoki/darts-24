@@ -6,6 +6,7 @@ import java.awt.image.BufferedImage
 import java.io.{FileInputStream, FileOutputStream, InputStream}
 import java.util.Properties
 
+import org.bytedeco.javacpp.opencv_core.Scalar
 import org.bytedeco.javacv.Java2DFrameConverter
 import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
 
@@ -19,13 +20,16 @@ class Config {
 
 }
 object Config {
+  val COLOR_BLUE: Scalar = new Scalar(250, 150, 5, 0)
+
   var prop:Properties = null
   var u: Config = null
 
-  val transformationDst = Array(134f, 262f,   666f, 262f,   666f, 538f,   134f, 538f)
-  val distancesFromBull = List(14, 28, 174, 192, 284, 300)
-  val nums = List(6, 13, 4, 18, 1, 20, 5, 12, 9, 14, 11, 8, 16, 7, 19, 3, 17, 2, 15, 10)
-  val bull = new Point(400, 400)
+  val conversion = 1
+  val transformationDst = Array(134f, 262f,   666f, 262f,   666f, 538f,   134f, 538f, 400f, 400f).map(_/conversion)
+  val distancesFromBull = Array(14, 28, 174, 192, 284, 300).map(_/conversion)
+  val nums = List(6, 13, 4, 18, 1, 20, 5, 12, 9, 14, 11, 8, 16, 7, 19, 3, 17, 2, 15, 10).map(_/conversion)
+  val bull = new Point(400/conversion, 400/conversion)
 
 
   def getProperties: Config = {
@@ -36,7 +40,7 @@ object Config {
       prop.load(input)
 
       u = new Config()
-      for (i <- 0 to 3) {
+      for (i <- 0 to u.trSrc.size - 1) {
         u.trSrc(i).x = prop.getProperty(s"src${i}x").toInt
         u.trSrc(i).y = prop.getProperty(s"src${i}y").toInt
       }

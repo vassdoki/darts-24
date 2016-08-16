@@ -24,7 +24,19 @@ class BackgroundSubtractorTest {
   val COMMAND_LINE = true
   val INPUT_DIR = "/home/vassdoki/darts/v2/test"
   val OUTPUT_DIR = "/home/vassdoki/darts/v2/d"
+  val SKIP_STORED_FILE = 0
 
+  // this triggers the dart recognision
+  val MIN_NONE_ZERO = 100
+
+  /*
+  0: default state
+  1: there was a change that needs to be recognized on the following images
+  2: the recognizer still runs, but the mog reports no change
+  n: hands on the image, darts are being taken out (? usable state?)
+   */
+  var state: Int = 0
+  var dartRecognizer: DartRecognizer = null
 
   var cameraAllowed = false
   //var maxOutputNumber = 9999999
@@ -33,8 +45,93 @@ class BackgroundSubtractorTest {
     val d = new File(INPUT_DIR)
     val x: Seq[File] = Seq(d.listFiles.sorted: _*)
     val camera = CaptureTrait.get(x)
+    camera.skipNext = SKIP_STORED_FILE
     runRecognizer(camera)
     CaptureTrait.releaseCamera()
+  }
+
+  def runRecognizer(camera: CaptureTrait) = {
+    val mog = createMog
+    var imageMat: Mat = null
+    var prevImageMat: Mat = null
+    var mask: Mat = new Mat()
+    var countZero = 0
+
+    // capture the first image, initialize mog
+    imageMat = camera.captureFrame
+    mog.apply(imageMat, mask, 1)
+    CvUtil.releaseMat(imageMat)
+    try {
+      while (cameraAllowed) {
+        imageMat = camera.captureFrame
+        mog.apply(imageMat, mask, 0.1)
+        countZero = countNonZero(mask)
+        (state, countZero) match {
+          case (0, z) if (z <= MIN_NONE_ZERO) => {
+            // nothing interesting
+          }
+          case (0, z) if z > MIN_NONE_ZERO => {
+            // if there was a previous dartRecognizer, ask for the result, and close it
+            if (dartRecognizer != null) {
+              handleRecognizerResultAndCLose
+            }
+            startNewRecognizer(prevImageMat, camera.imageNumber)
+            state = 1
+            dartRecognizer.newImage(imageMat)
+            //imwrite(f"$OUTPUT_DIR/${camera.imageNumber}%05d-${camera.lastFilename}%30s zero: $countZero.jpg", mask)
+          }
+          case (1, z) if z > 0 => {
+            // recognizer active, and mog still reports change
+            dartRecognizer.newImage(imageMat)
+          }
+          case (1, z) if z == 0 => {
+            // recognizer active, but mog reports no change
+            dartRecognizer.newImage(imageMat)
+            state = 2
+          }
+          case (2, z) if z <= MIN_NONE_ZERO => {
+            // recognizer active, but mog reports no change
+            dartRecognizer.newImage(imageMat)
+          }
+          case (2, z) if z > MIN_NONE_ZERO => {
+            // recognizer active, and mog reports new change
+            handleRecognizerResultAndCLose
+            startNewRecognizer(prevImageMat, camera.imageNumber)
+            state = 1
+          }
+        }
+        println(f"file: ${camera.lastFilename} zero: $countZero state: $state)")
+
+        CvUtil.releaseMat(prevImageMat)
+        prevImageMat = imageMat
+      }
+    }catch {
+      case e: Exception => {
+        println("BackgroundSubstractorTest exception: " + e)
+      }
+    }
+  }
+
+  def startNewRecognizer(prevImageMat: Mat, imgNum: Int) = {
+    dartRecognizer = new DartRecognizer(prevImageMat, imgNum)
+  }
+
+  def handleRecognizerResultAndCLose = {
+    val (result_mod, result_num) = dartRecognizer.getResult
+    val image = dartRecognizer.getImage(5)
+    val color: Scalar = new Scalar(250, 250, 5, 0)
+
+    putText(image, f"Number: $result_num (modifier: $result_mod)", new Point(50,50),
+      FONT_HERSHEY_PLAIN, // font type
+      3, // font scale
+      color, // text color (here white)
+      3, // text thickness
+      8, // Line type.
+      false)
+    CvUtil.drawNumbers(image, Config.COLOR_BLUE)
+    imwrite(f"$OUTPUT_DIR/${dartRecognizer.getStartImgNum}%05d-a-mod:$result_mod-num:$result_num.jpg", image)
+
+    dartRecognizer.release
   }
 
   def continousCameraUpdate = {
@@ -49,33 +146,6 @@ class BackgroundSubtractorTest {
     }
     runRecognizer(capture)
     CaptureTrait.releaseCamera()
-  }
-
-  def runRecognizer(camera: CaptureTrait) = {
-    val mog = createMog
-    var imageMat: Mat = null
-    var mask: Mat = new Mat()
-    var countZero = 0
-
-    // capture the first image, initialize mog
-    imageMat = camera.captureFrame
-    mog.apply(imageMat, mask, 1)
-
-    try {
-      while (cameraAllowed) {
-        imageMat = camera.captureFrame
-        mog.apply(imageMat, mask, 0.5)
-        countZero = countNonZero(mask)
-        println(f"${camera.lastFilename}%30s zero: $countZero")
-        if (countZero > 0) {
-          imwrite(f"$OUTPUT_DIR/${camera.imageNumber}%05d-${camera.lastFilename}%30s zero: $countZero.jpg", mask)
-        }
-      }
-    }catch {
-      case e: Exception => {
-        println(e)
-      }
-    }
   }
 
 
@@ -148,14 +218,14 @@ class BackgroundSubtractorTest {
           val kernelSize = 3
           medianBlur(maskBelso, dest, kernelSize)
           medianBlur(dest, dest2, kernelSize + 2)
-          val dest3 = CvUtil.transform(dest2)
+          val transformed = CvUtil.transform(dest2)
           // TODO: nem értem miért nem jó a második, ami a MAT-tal dolgozik
-          val tempIplImage = new IplImage(dest3)
+          val tempIplImage = new IplImage(transformed)
           val (x, y) = findTopWhite(tempIplImage)
           tempIplImage.release()
-          //val (x,y) = findTopWhite(dest3)
+          //val (x,y) = findTopWhite(transformed)
           val color: Scalar = new Scalar(250, 250, 5, 0)
-          CvUtil.drawTable(dest3, color)
+          CvUtil.drawTable(transformed, color)
 
           val (mod, num) = identifyNumber(new Point(x, y))
           if (prevNonZero > nonZero) {
@@ -166,10 +236,10 @@ class BackgroundSubtractorTest {
           if (!COMMAND_LINE) GameUi.updateImage(2,new ImageIcon(CvUtil.toBufferedImage(dest2)))
           //imwrite(f"$OUTPUT_DIR/$i%05d-b-mask-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", maskBelso)
           //imwrite(f"$OUTPUT_DIR/$i%05d-c-medi-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", dest2)
-          //imwrite(f"$OUTPUT_DIR/$i%05d-d-resu-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", dest3)
+          //imwrite(f"$OUTPUT_DIR/$i%05d-d-resu-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", transformed)
           //imwrite(f"$OUTPUT_DIR/$i%05d-e-maskKuldso-${talalat}%02d-nonz:${nonZero}-res:$mod-$num.jpg", mask)
 
-          putText(dest3, f"Number: $result_num (modifier: $result_mod)", new Point(50,50),
+          putText(transformed, f"Number: $result_num (modifier: $result_mod)", new Point(50,50),
             FONT_HERSHEY_PLAIN, // font type
             3, // font scale
             color, // text color (here white)
@@ -177,14 +247,14 @@ class BackgroundSubtractorTest {
             8, // Line type.
             false)
 
-          if (!COMMAND_LINE) GameUi.updateImage(1,new ImageIcon(CvUtil.toBufferedImage(dest3)))
+          if (!COMMAND_LINE) GameUi.updateImage(1,new ImageIcon(CvUtil.toBufferedImage(transformed)))
           //println(f"${cameraFile.lastFilename};$i;$talalat;$nonZero;$mod;$num")
           //out.println(f"${cameraFile.lastFilename};$i;$talalat;$nonZero;$mod;$num")
           //out.flush()
 
           dest.release()
           dest2.release()
-          dest3.release()
+          transformed.release()
 
           if (imageMat != null) {
             imageMat.release()

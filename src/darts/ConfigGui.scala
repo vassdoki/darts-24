@@ -40,7 +40,7 @@ object ConfigGui extends SimpleSwingApplication{
   val transCheckbox: List[CheckBox] = List.fill(4) {new CheckBox}
   var transCheckboxSelected: Int = 0
   //val transLabel = List("bull", "4", "14", "17")
-  val transLabel = List("9a", "4a", "15t", "16t")
+  val transLabel = List("9a", "4a", "15t", "16t", "B")
   val fpsLabel = new Label
   var imgCount = 0
   var openedImage: Mat = null
@@ -72,7 +72,7 @@ object ConfigGui extends SimpleSwingApplication{
       Config.saveProperties
     }
 
-    for (i <- 0 to 3) {
+    for (i <- 0 to transCheckbox.size - 1) {
       transCheckbox(i).text = f"${transLabel(i)} ${conf.trSrc(i).x};${conf.trSrc(i).y}"
     }
     transCheckbox(0).selected = true
@@ -83,7 +83,7 @@ object ConfigGui extends SimpleSwingApplication{
       contents += new Button(openImageAction)
       contents += new Button(saveSettingsAction)
       contents += fpsLabel
-      for (i <- 0 to 3) { contents += transCheckbox(i) }
+      for (i <- 0 to transCheckbox.size - 1) { contents += transCheckbox(i) }
       vGap = 1
     }
 
@@ -97,7 +97,7 @@ object ConfigGui extends SimpleSwingApplication{
     }
 
     listenTo(imageViews(0).mouse.clicks)
-    for (i <- (0 to 3)) {
+    for (i <- (0 to transCheckbox.size - 1)) {
       listenTo(transCheckbox(i))
     }
     listenTo(cameraCheckbox)
@@ -123,7 +123,7 @@ object ConfigGui extends SimpleSwingApplication{
           setCameraState
         } else {
           transCheckbox map { ci =>
-            for (i <- (0 to 3)) {
+            for (i <- (0 to transCheckbox.size - 1)) {
               if (transCheckbox(i) == c) {
                 transCheckbox(i).selected = true
                 transCheckboxSelected = i
