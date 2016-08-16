@@ -12,6 +12,7 @@ import scala.math._
  * Created by vassdoki on 2016.08.07..
  */
 class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
+  var skipNext: Int = -1 // no use of it here
   val capture: VideoCapture = new VideoCapture(videoDeviceNumber)
   var imageNumber = 0
 

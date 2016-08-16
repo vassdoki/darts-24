@@ -13,6 +13,7 @@ class CaptureFile (inputFiles: Seq[File]) extends CaptureTrait{
   var rest: Seq[File] = inputFiles
   var lastFilename: String = null
   var imageNumber  = 0
+  var skipNext: Int = 0
 
   val frame = new Mat()
 
@@ -20,6 +21,10 @@ class CaptureFile (inputFiles: Seq[File]) extends CaptureTrait{
     if (rest.size == 0) {
       throw new Exception("No more file from CaptureFile")
     } else {
+      if (skipNext > 0) {
+        rest = rest.slice(skipNext, rest.size)
+        skipNext = 0
+      }
       val file = rest.head
       lastFilename = file.getName
       rest = rest.tail
@@ -33,4 +38,5 @@ class CaptureFile (inputFiles: Seq[File]) extends CaptureTrait{
   }
 
   def getSelf: CaptureFile = this
+
 }

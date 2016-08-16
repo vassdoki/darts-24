@@ -13,6 +13,7 @@ trait CaptureTrait {
   def getSelf: Any
   def lastFilename: String
   var imageNumber: Int
+  var skipNext: Int
 }
 
 object CaptureTrait {
