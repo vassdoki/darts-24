@@ -35,12 +35,15 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
 
     if (imageCount == 1) {
       // initialize mog
+      CvUtil.drawTable(prevTable, Config.COLOR_BLUE, 6)
+      DartRecognizer.mog.clear()
       DartRecognizer.mog.apply(prevTable, mask, 1)
     }
     
     if (imageCount > START_FROM_IMAGE) {
       val transformed = CvUtil.transform(imageMat)
       images += transformed
+      CvUtil.drawTable(transformed, Config.COLOR_BLUE, 6)
       DartRecognizer.mog.apply(transformed, mask, 0)
       val nonZero = countNonZero(mask)
       val kernelSize = 3
@@ -52,11 +55,11 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
       val (mod, num) = identifyNumber(new Point(x, y))
 
 //      CvUtil.drawTable(mask, Config.COLOR_RED)
-//      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-b-$imageCount%04d-mask.jpg", mask)
+      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-b-$imageCount%04d-mask.jpg", mask)
 //      CvUtil.drawTable(imageBlured, Config.COLOR_RED)
-//      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-c-$imageCount%04d-blur1.jpg", imageBlured)
+      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-c-$imageCount%04d-blur1.jpg", imageBlured)
 //      CvUtil.drawTable(imageBlured2, Config.COLOR_RED)
-//      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-d-$imageCount%04d-blur2.jpg", imageBlured2)
+      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-d-$imageCount%04d-blur2.jpg", imageBlured2)
 
       //transformed.release()
       results += Tuple5(nonZero, mod, num, x, y)
@@ -84,6 +87,7 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
     prevTable.release()
     mask.release()
     imageBlured.release()
+    imageBlured2.release()
     images.foreach(i => i.release())
   }
 

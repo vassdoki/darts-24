@@ -2,6 +2,8 @@ package darts.util
 
 import java.awt.image.BufferedImage
 
+import org.bytedeco.javacpp.FloatPointer
+import org.bytedeco.javacpp.indexer.FloatIndexer
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacpp.opencv_imgproc._
 import org.bytedeco.javacv.Java2DFrameConverter
@@ -13,27 +15,52 @@ import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
 object CvUtil {
   def transform(image: Mat): Mat = {
     val config = Config.getProperties
-    val src: Array[Float] = (0 to 3).map { i => List(config.trSrc(i).x.toFloat, config.trSrc(i).y.toFloat) }.flatten.toArray
-    val dst: Array[Float] = Config.transformationDst
-    var mat = new CvMat(new Mat(3, 3, CV_64F))
-    mat = cvGetPerspectiveTransform(src, dst, mat)
-    val i2 = new CvMat(image)
-    val src2 = cvCloneMat(i2)
-    cvWarpPerspective(i2, src2, mat)
-    val mat2 = new Mat(src2)
+    //val src: Array[Float] = (0 to 3).map { i => List(config.trSrc(i).x.toFloat, config.trSrc(i).y.toFloat) }.flatten.toArray
+    val src = config.trSrc.map(p => new Point2f(p.getX.toFloat, p.getY.toFloat)).toSeq
+    val dst = (0 to 3).map(i => new Point2f(Config.transformationDst(i * 2), Config.transformationDst(i*2 + 1))).toSeq
 
-    //    val color: Scalar = new Scalar(250, 250, 5, 0)
-    //    drawTable(mat2, color)
-    mat2
+    val srcMat = toMatPoint2f(src)
+    val dstMat = toMatPoint2f(dst)
+
+    var mat = new Mat(3, 3, CV_64F)
+    mat = getPerspectiveTransform(srcMat, dstMat)
+    val i2 = new Mat(image.size, image.`type`())
+    warpPerspective(image, i2, mat, i2.size())
+    mat.release()
+    i2
+  }
+
+  def toMatPoint2f(points: Seq[Point2f]): Mat = {
+    // Create Mat representing a vector of Points3f
+    val dest = new Mat(1, points.size, CV_32FC2)
+    val indx = dest.createIndexer().asInstanceOf[FloatIndexer]
+    for (i <- points.indices) {
+      val p = points(i)
+      indx.put(0, i, 0, p.x)
+      indx.put(0, i, 1, p.y)
+    }
+    require(dest.checkVector(2) >= 0)
+    dest
+  }
+
+  def toMatArrayFloat(f: Array[Float]): Mat = {
+    // Create Mat representing a vector of Points3f
+    val dest = new Mat(1, f.size, CV_32F)
+    val indx = dest.createIndexer().asInstanceOf[FloatIndexer]
+    for (i <- f.indices) {
+      val p = f(i)
+      indx.put(0, i, 0, p)
+    }
+    dest
   }
 
 
-  def drawTable(src: Mat, color: Scalar) = {
+  def drawTable(src: Mat, color: Scalar, lineWidth: Int = 2) = {
     val bull: Point = new Point(Config.bull.x, Config.bull.y)
 
-    Config.distancesFromBull map { dist => circle(src, bull, dist, color, 4, 8, 0) }
+    Config.distancesFromBull map { dist => circle(src, bull, dist, color, lineWidth, 8, 0) }
     for (d <- 9 to 351 by 18) {
-      line(src, rotatePoint(bull, d, Config.distancesFromBull(1)), rotatePoint(bull, d, Config.distancesFromBull(5)), color,4, 8, 0)
+      line(src, rotatePoint(bull, d, Config.distancesFromBull(1)), rotatePoint(bull, d, Config.distancesFromBull(5)), color,lineWidth, 8, 0)
     }
     drawCross(src, Config.transformationDst(0).toInt, Config.transformationDst(1).toInt)
     drawCross(src, Config.transformationDst(2).toInt, Config.transformationDst(3).toInt)

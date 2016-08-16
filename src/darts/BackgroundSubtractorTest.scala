@@ -100,7 +100,7 @@ class BackgroundSubtractorTest {
             state = 1
           }
         }
-        println(f"file: ${camera.lastFilename} zero: $countZero state: $state)")
+        //println(f"file: ${camera.lastFilename} zero: $countZero state: $state)")
 
         CvUtil.releaseMat(prevImageMat)
         prevImageMat = imageMat
@@ -149,12 +149,71 @@ class BackgroundSubtractorTest {
   }
 
 
+
+  def findTopWhite(i: IplImage) : (Int, Int) = {
+    val d: BytePointer = i.imageData()
+
+    var j: Int = 0
+    while((d.get(j) == 0 || d.get(j+1) == 0) && j < 960 * 720) {
+      j = j + 2
+    }
+    (j % i.width(), j / i.width())
+  }
+  def findTopWhite(i: Mat) : (Int, Int) = {
+    val d: ByteBuffer = i.asByteBuffer()
+
+    var j: Int = 0
+    while((d.get(j) == 0 || d.get(j+1) == 0) && j < 960 * 720) {
+      j = j + 2
+    }
+    (j % i.cols(), j / i.rows())
+  }
+  def identifyNumber(p: Point): Pair[Int, Int] = {
+    val degree = CvUtil.getDegreeFromBull(p)
+    val distance = CvUtil.getDistanceFromBull(p)
+    // 6-os közepe a 0 fok és óra járásával ellentétes irányba megy
+
+    val int: Int = Math.floor((degree + 9) / 18).toInt
+    val number = if (int > 19) Config.nums(0) else Config.nums(int)
+
+    val circleNumber: Int = Config.distancesFromBull filter { dfb => dfb < distance } length
+
+    circleNumber match {
+      case 0 => (2, 25)
+      case 1 => (1, 25)
+      case 3 => (3, number)
+      case 5 => (2, number)
+      case _ => (1, number)
+    }
+  }
+
+  def createMog: BackgroundSubtractorMOG2 = {
+    var mog = createBackgroundSubtractorMOG2()
+    mog.setDetectShadows(true)
+    println("detect shadows: " + mog.getDetectShadows())
+    mog.setShadowValue(500)
+    mog.setComplexityReductionThreshold(0.05) // default: 0.05
+    println("ComplexityReductionThreshold: " + mog.getComplexityReductionThreshold())
+    mog.setBackgroundRatio(0.9999) // default: 0.9
+    println("BackgroundRatio: " + mog.getBackgroundRatio)
+    mog.setVarMin(4) // default: 4
+    println("varMin: " + mog.getVarMin)
+    mog.setVarMax(75) // default: 75
+    println("varMax: " + mog.getVarMax)
+    mog.setVarThreshold(128) // default: 16
+    println("varThreshold: " + mog.getVarThreshold)
+    mog.setVarThresholdGen(9) // default: 9
+    println("varThresholdGen: " + mog.getVarThresholdGen)
+    mog
+  }
+
+  @deprecated
   def runRecognizerOld(camera: CaptureTrait) = {
     var mask: Mat = new Mat()
     var maskBelso: Mat = new Mat()
 
-//    val out = new PrintWriter(new File("backgroundSubstractorResult.csv"))
-//    out.println(f"filename;count;talalat;none zero;mod;num")
+    //    val out = new PrintWriter(new File("backgroundSubstractorResult.csv"))
+    //    out.println(f"filename;count;talalat;none zero;mod;num")
 
     var i = 0
     var first = false
@@ -280,65 +339,9 @@ class BackgroundSubtractorTest {
       GameUi.imgCount += 1
       i += 1
     }
-//    out.close()
+    //    out.close()
   }
 
-  def findTopWhite(i: IplImage) : (Int, Int) = {
-    val d: BytePointer = i.imageData()
-
-    var j: Int = 0
-    while((d.get(j) == 0 || d.get(j+1) == 0) && j < 960 * 720) {
-      j = j + 2
-    }
-    (j % i.width(), j / i.width())
-  }
-  def findTopWhite(i: Mat) : (Int, Int) = {
-    val d: ByteBuffer = i.asByteBuffer()
-
-    var j: Int = 0
-    while((d.get(j) == 0 || d.get(j+1) == 0) && j < 960 * 720) {
-      j = j + 2
-    }
-    (j % i.cols(), j / i.rows())
-  }
-  def identifyNumber(p: Point): Pair[Int, Int] = {
-    val degree = CvUtil.getDegreeFromBull(p)
-    val distance = CvUtil.getDistanceFromBull(p)
-    // 6-os közepe a 0 fok és óra járásával ellentétes irányba megy
-
-    val int: Int = Math.floor((degree + 9) / 18).toInt
-    val number = if (int > 19) Config.nums(0) else Config.nums(int)
-
-    val circleNumber: Int = Config.distancesFromBull filter { dfb => dfb < distance } length
-
-    circleNumber match {
-      case 0 => (2, 25)
-      case 1 => (1, 25)
-      case 3 => (3, number)
-      case 5 => (2, number)
-      case _ => (1, number)
-    }
-  }
-
-  def createMog: BackgroundSubtractorMOG2 = {
-    var mog = createBackgroundSubtractorMOG2()
-    mog.setDetectShadows(true)
-    println("detect shadows: " + mog.getDetectShadows())
-    mog.setShadowValue(500)
-    mog.setComplexityReductionThreshold(0.05) // default: 0.05
-    println("ComplexityReductionThreshold: " + mog.getComplexityReductionThreshold())
-    mog.setBackgroundRatio(0.9999) // default: 0.9
-    println("BackgroundRatio: " + mog.getBackgroundRatio)
-    mog.setVarMin(4) // default: 4
-    println("varMin: " + mog.getVarMin)
-    mog.setVarMax(75) // default: 75
-    println("varMax: " + mog.getVarMax)
-    mog.setVarThreshold(128) // default: 16
-    println("varThreshold: " + mog.getVarThreshold)
-    mog.setVarThresholdGen(9) // default: 9
-    println("varThresholdGen: " + mog.getVarThresholdGen)
-    mog
-  }
 
 }
 
