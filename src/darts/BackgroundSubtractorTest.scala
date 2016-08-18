@@ -121,16 +121,6 @@ class BackgroundSubtractorTest {
     val image = dartRecognizer.getImage(5)
     val color: Scalar = new Scalar(250, 250, 5, 0)
 
-    putText(image, f"Number: $result_num (modifier: $result_mod)", new Point(50,50),
-      FONT_HERSHEY_PLAIN, // font type
-      3, // font scale
-      color, // text color (here white)
-      3, // text thickness
-      8, // Line type.
-      false)
-    CvUtil.drawNumbers(image, Config.COLOR_BLUE)
-    imwrite(f"$OUTPUT_DIR/${dartRecognizer.getStartImgNum}%05d-a-mod:$result_mod-num:$result_num.jpg", image)
-
     dartRecognizer.release
   }
 

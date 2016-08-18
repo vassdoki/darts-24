@@ -62,10 +62,10 @@ object CvUtil {
     for (d <- 9 to 351 by 18) {
       line(src, rotatePoint(bull, d, Config.distancesFromBull(1)), rotatePoint(bull, d, Config.distancesFromBull(5)), color,lineWidth, 8, 0)
     }
-    drawCross(src, Config.transformationDst(0).toInt, Config.transformationDst(1).toInt)
-    drawCross(src, Config.transformationDst(2).toInt, Config.transformationDst(3).toInt)
-    drawCross(src, Config.transformationDst(4).toInt, Config.transformationDst(5).toInt)
-    drawCross(src, Config.transformationDst(6).toInt, Config.transformationDst(7).toInt)
+//    drawCross(src, Config.transformationDst(0).toInt, Config.transformationDst(1).toInt)
+//    drawCross(src, Config.transformationDst(2).toInt, Config.transformationDst(3).toInt)
+//    drawCross(src, Config.transformationDst(4).toInt, Config.transformationDst(5).toInt)
+//    drawCross(src, Config.transformationDst(6).toInt, Config.transformationDst(7).toInt)
     src
   }
 

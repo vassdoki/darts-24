@@ -6,6 +6,7 @@ import java.awt.image.BufferedImage
 import java.io.{FileInputStream, FileOutputStream, InputStream}
 import java.util.Properties
 
+import org.bytedeco.javacpp.opencv_core
 import org.bytedeco.javacpp.opencv_core.Scalar
 import org.bytedeco.javacv.Java2DFrameConverter
 import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
@@ -20,6 +21,10 @@ class Config {
 
 }
 object Config {
+
+
+  val COLOR_RED: Scalar = new Scalar(0, 0, 254, 0) // BGR
+  val COLOR_YELLOW: Scalar = new Scalar(91, 240, 245, 0)
   val COLOR_BLUE: Scalar = new Scalar(250, 150, 5, 0)
 
   var prop:Properties = null
@@ -30,6 +35,7 @@ object Config {
   val distancesFromBull = Array(14, 28, 174, 192, 284, 300).map(_/conversion)
   val nums = List(6, 13, 4, 18, 1, 20, 5, 12, 9, 14, 11, 8, 16, 7, 19, 3, 17, 2, 15, 10).map(_/conversion)
   val bull = new Point(400/conversion, 400/conversion)
+  var obull = new opencv_core.Point(bull.x, bull.y)
 
 
   def getProperties: Config = {

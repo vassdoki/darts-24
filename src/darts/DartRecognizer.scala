@@ -1,11 +1,13 @@
 package darts
 
 import darts.util.{Config, CvUtil}
-import org.bytedeco.javacpp.BytePointer
+import darts.util.CvUtil._
+import org.bytedeco.javacpp.{opencv_imgproc, opencv_features2d, BytePointer}
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacpp.opencv_imgcodecs._
 import org.bytedeco.javacpp.opencv_imgproc._
 import org.bytedeco.javacpp.opencv_video._
+import org.bytedeco.javacpp.opencv_features2d._
 
 import scala.collection.parallel.mutable
 
@@ -35,7 +37,7 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
 
     if (imageCount == 1) {
       // initialize mog
-      CvUtil.drawTable(prevTable, Config.COLOR_BLUE, 6)
+      //CvUtil.drawTable(prevTable, Config.COLOR_BLUE, 6)
       DartRecognizer.mog.clear()
       DartRecognizer.mog.apply(prevTable, mask, 1)
     }
@@ -43,7 +45,7 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
     if (imageCount > START_FROM_IMAGE) {
       val transformed = CvUtil.transform(imageMat)
       images += transformed
-      CvUtil.drawTable(transformed, Config.COLOR_BLUE, 6)
+      //CvUtil.drawTable(transformed, Config.COLOR_BLUE, 6)
       DartRecognizer.mog.apply(transformed, mask, 0)
       val nonZero = countNonZero(mask)
       val kernelSize = 3
@@ -54,12 +56,45 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
       val (x, y) = findTopWhite(imageBlured2)
       val (mod, num) = identifyNumber(new Point(x, y))
 
-//      CvUtil.drawTable(mask, Config.COLOR_RED)
-      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-b-$imageCount%04d-mask.jpg", mask)
-//      CvUtil.drawTable(imageBlured, Config.COLOR_RED)
-      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-c-$imageCount%04d-blur1.jpg", imageBlured)
-//      CvUtil.drawTable(imageBlured2, Config.COLOR_RED)
-      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-d-$imageCount%04d-blur2.jpg", imageBlured2)
+      //cvtColor(imageBlured, imageBlured, CV_GRAY2RGB)
+      cvtColor(imageBlured2, imageBlured2, CV_GRAY2RGB)
+      cvtColor(mask, mask, CV_GRAY2RGB)
+
+      CvUtil.drawTable(mask, Config.COLOR_YELLOW, 1)
+      CvUtil.drawTable(imageBlured2, Config.COLOR_YELLOW, 1)
+      CvUtil.drawNumbers(imageBlured2, Config.COLOR_YELLOW)
+      circle(imageBlured2, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
+
+      val w = imageMat.size().width()
+      val h = imageMat.size().height()
+      val outMat = new Mat(imageMat.size(), imageMat.`type`())
+      var resized = new Mat(h/2, w/2, imageMat.`type`())
+      // IMG 1
+      resize(imageMat, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+      resized.copyTo(outMat(new Rect(0,0,w/2,h/2)))
+      // IMG 2
+      resize(transformed, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+      resized.copyTo(outMat(new Rect(w/2,0,w/2,h/2)))
+      // IMG 3
+      resize(mask, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+      resized.copyTo(outMat(new Rect(0,h/2,w/2,h/2)))
+      // IMG 4
+      resize(imageBlured2, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+      resized.copyTo(outMat(new Rect(w/2,h/2,w/2,h/2)))
+
+      putText(outMat, f"Number: $num (modifier: $mod)", new Point(50,h/2+50),
+        FONT_HERSHEY_PLAIN, // font type
+        2, // font scale
+        Config.COLOR_YELLOW, // text color (here white)
+        3, // text thickness
+        8, // Line type.
+        false)
+
+
+      resized.release()
+
+      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-b-$imageCount%04d-out.jpg", outMat)
+      outMat.release()
 
       //transformed.release()
       results += Tuple5(nonZero, mod, num, x, y)
@@ -123,6 +158,31 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
     }
     i.release()
     (j % w, j / w)
+  }
+
+  def detectBlobs(pimage: Mat) = {
+    val image: Mat = pimage.clone()
+    val params = new SimpleBlobDetector.Params
+    params.minDistBetweenBlobs(50.0f)
+    params.filterByInertia(false)
+    params.filterByConvexity(false)
+    params.filterByColor(true)
+    params.filterByCircularity(false)
+    params.filterByArea(true)
+    params.minArea(10.0f)
+    params.maxArea(5000.0f)
+
+    val bd = SimpleBlobDetector.create(params)
+    //FastFeatureDetector.create()
+    //var kv = new opencv_features2d.KeyPoint() //KeyPoint()
+    val kv = new KeyPointVector()
+    bd.detect(image, kv)
+
+    for (i <- 0 to kv.size().toInt){
+      drawCross(image, kv.get(i).pt.x.toInt, kv.get(i).pt.y.toInt)
+    }
+    imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-b-$imageCount%04d-mask.jpg", image)
+    image.release()
   }
 }
 
