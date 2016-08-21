@@ -2,7 +2,6 @@ package darts.util
 
 import java.awt.image.BufferedImage
 
-import org.bytedeco.javacpp.FloatPointer
 import org.bytedeco.javacpp.indexer.FloatIndexer
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacpp.opencv_imgproc._
@@ -62,11 +61,6 @@ object CvUtil {
     for (d <- 9 to 351 by 18) {
       line(src, rotatePoint(bull, d, Config.distancesFromBull(1)), rotatePoint(bull, d, Config.distancesFromBull(5)), color,lineWidth, 8, 0)
     }
-//    drawCross(src, Config.transformationDst(0).toInt, Config.transformationDst(1).toInt)
-//    drawCross(src, Config.transformationDst(2).toInt, Config.transformationDst(3).toInt)
-//    drawCross(src, Config.transformationDst(4).toInt, Config.transformationDst(5).toInt)
-//    drawCross(src, Config.transformationDst(6).toInt, Config.transformationDst(7).toInt)
-    src
   }
 
   def drawNumbers(src: Mat, color: Scalar) = {
@@ -83,7 +77,6 @@ object CvUtil {
         false)
       i += 1
     }
-    src
   }
 
   def drawCross(src: Mat, x: Int, y: Int, colorNum: Int = 0, size: Int = 10) = {

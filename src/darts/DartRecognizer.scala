@@ -14,7 +14,7 @@ import scala.collection.parallel.mutable
 /**
  * Created by vassdoki on 2016.08.12..
  */
-class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
+class DartRecognizer(paramPrevTable: Mat, imgName: String) {
   val OUTPUT_DIR = "/home/vassdoki/darts/v2/d"
   val prevTable: Mat = CvUtil.transform(paramPrevTable)
   // the first images are usually useless
@@ -23,7 +23,6 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
 
   var mask = new Mat
   var imageBlured = new Mat
-  var imageBlured2 = new Mat
   val images = scala.collection.mutable.ListBuffer.empty[Mat]
 
   val results = scala.collection.mutable.ArrayBuffer.empty[(Int, Int, Int, Int, Int)]
@@ -48,39 +47,36 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
       //CvUtil.drawTable(transformed, Config.COLOR_BLUE, 6)
       DartRecognizer.mog.apply(transformed, mask, 0)
       val nonZero = countNonZero(mask)
-      val kernelSize = 3
+      val kernelSize = 19
       medianBlur(mask, imageBlured, kernelSize)
 
-      medianBlur(imageBlured, imageBlured2, kernelSize + 4)
-
-      val (x, y) = findTopWhite(imageBlured2)
+      val (x, y) = findTopWhite(imageBlured)
       val (mod, num) = identifyNumber(new Point(x, y))
 
-      //cvtColor(imageBlured, imageBlured, CV_GRAY2RGB)
-      cvtColor(imageBlured2, imageBlured2, CV_GRAY2RGB)
+      cvtColor(imageBlured, imageBlured, CV_GRAY2RGB)
       cvtColor(mask, mask, CV_GRAY2RGB)
 
       CvUtil.drawTable(mask, Config.COLOR_YELLOW, 1)
-      CvUtil.drawTable(imageBlured2, Config.COLOR_YELLOW, 1)
-      CvUtil.drawNumbers(imageBlured2, Config.COLOR_YELLOW)
-      circle(imageBlured2, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
+      CvUtil.drawTable(imageBlured, Config.COLOR_YELLOW, 1)
+      CvUtil.drawNumbers(imageBlured, Config.COLOR_YELLOW)
+      circle(imageBlured, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
 
       val w = imageMat.size().width()
       val h = imageMat.size().height()
       val outMat = new Mat(imageMat.size(), imageMat.`type`())
       var resized = new Mat(h/2, w/2, imageMat.`type`())
       // IMG 1
-      resize(imageMat, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+      resize(transformed, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
       resized.copyTo(outMat(new Rect(0,0,w/2,h/2)))
       // IMG 2
-      resize(transformed, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+      resize(mask, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
       resized.copyTo(outMat(new Rect(w/2,0,w/2,h/2)))
       // IMG 3
-      resize(mask, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+      resize(imageBlured, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
       resized.copyTo(outMat(new Rect(0,h/2,w/2,h/2)))
       // IMG 4
-      resize(imageBlured2, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
-      resized.copyTo(outMat(new Rect(w/2,h/2,w/2,h/2)))
+//      resize(imageBlured, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+//      resized.copyTo(outMat(new Rect(w/2,h/2,w/2,h/2)))
 
       putText(outMat, f"Number: $num (modifier: $mod)", new Point(50,h/2+50),
         FONT_HERSHEY_PLAIN, // font type
@@ -90,11 +86,10 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
         8, // Line type.
         false)
 
-
+      imwrite(f"${OUTPUT_DIR}/${imgName}-b-$imageCount%04d-zero:$nonZero%06d-num:$num% 2d-mod:$mod% 2d.jpg", outMat)
+      outMat.release()
       resized.release()
 
-      imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-b-$imageCount%04d-out.jpg", outMat)
-      outMat.release()
 
       //transformed.release()
       results += Tuple5(nonZero, mod, num, x, y)
@@ -102,11 +97,15 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
   }
 
   def getImage(num: Int) : Mat = {
-    images(num)
+    if (num >= images.size) {
+      images(images.size - 1) 
+    } else {
+      images(num)
+    }
   }
 
   // TODO: ezt csak igy lehet?
-  def getStartImgNum = imgNum
+  def getStartImgName = imgName
 
   /**
    * Return the result and free every allocated memory
@@ -122,7 +121,6 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
     prevTable.release()
     mask.release()
     imageBlured.release()
-    imageBlured2.release()
     images.foreach(i => i.release())
   }
 
@@ -181,7 +179,7 @@ class DartRecognizer(paramPrevTable: Mat, imgNum: Int) {
     for (i <- 0 to kv.size().toInt){
       drawCross(image, kv.get(i).pt.x.toInt, kv.get(i).pt.y.toInt)
     }
-    imwrite(f"${OUTPUT_DIR}/${imgNum}%05d-b-$imageCount%04d-mask.jpg", image)
+    imwrite(f"${OUTPUT_DIR}/${imgName}-b-$imageCount%04d-mask.jpg", image)
     image.release()
   }
 }

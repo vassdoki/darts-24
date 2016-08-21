@@ -27,7 +27,7 @@ class BackgroundSubtractorTest {
   val SKIP_STORED_FILE = 0
 
   // this triggers the dart recognision
-  val MIN_NONE_ZERO = 100
+  val MIN_NONE_ZERO = 1000
 
   /*
   0: default state
@@ -57,9 +57,11 @@ class BackgroundSubtractorTest {
     var mask: Mat = new Mat()
     var countZero = 0
 
-    // capture the first image, initialize mog
+    // capture the first two image, initialize mog
+    prevImageMat = camera.captureFrame
+    mog.apply(prevImageMat, mask, 1)
     imageMat = camera.captureFrame
-    mog.apply(imageMat, mask, 1)
+    mog.apply(imageMat, mask, 0.1)
     CvUtil.releaseMat(imageMat)
     try {
       while (cameraAllowed) {
@@ -75,7 +77,7 @@ class BackgroundSubtractorTest {
             if (dartRecognizer != null) {
               handleRecognizerResultAndCLose
             }
-            startNewRecognizer(prevImageMat, camera.imageNumber)
+            startNewRecognizer(prevImageMat, camera.lastFilename)
             state = 1
             dartRecognizer.newImage(imageMat)
             //imwrite(f"$OUTPUT_DIR/${camera.imageNumber}%05d-${camera.lastFilename}%30s zero: $countZero.jpg", mask)
@@ -96,7 +98,7 @@ class BackgroundSubtractorTest {
           case (2, z) if z > MIN_NONE_ZERO => {
             // recognizer active, and mog reports new change
             handleRecognizerResultAndCLose
-            startNewRecognizer(prevImageMat, camera.imageNumber)
+            startNewRecognizer(prevImageMat, camera.lastFilename)
             state = 1
           }
         }
@@ -108,12 +110,13 @@ class BackgroundSubtractorTest {
     }catch {
       case e: Exception => {
         println("BackgroundSubstractorTest exception: " + e)
+        e.printStackTrace()
       }
     }
   }
 
-  def startNewRecognizer(prevImageMat: Mat, imgNum: Int) = {
-    dartRecognizer = new DartRecognizer(prevImageMat, imgNum)
+  def startNewRecognizer(prevImageMat: Mat, imgName: String) = {
+    dartRecognizer = new DartRecognizer(prevImageMat, imgName)
   }
 
   def handleRecognizerResultAndCLose = {
