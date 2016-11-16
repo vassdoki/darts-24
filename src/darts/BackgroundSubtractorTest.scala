@@ -67,6 +67,7 @@ class BackgroundSubtractorTest {
       while (cameraAllowed) {
         imageMat = camera.captureFrame
         mog.apply(imageMat, mask, 0.1)
+        //GameUi.updateImage(0,new ImageIcon(CvUtil.toBufferedImage(mask)))
         countZero = countNonZero(mask)
         (state, countZero) match {
           case (0, z) if (z <= MIN_NONE_ZERO) => {
@@ -134,7 +135,8 @@ class BackgroundSubtractorTest {
     if (CAMERA_DEV_NUM >= 0) {
       capture = CaptureTrait.get(CAMERA_DEV_NUM)
     } else {
-      val x: Seq[File] = Seq(d.listFiles.filter(_.isFile).filter(_.getName.startsWith("orig-")).sorted: _*)
+      //val x: Seq[File] = Seq(d.listFiles.filter(_.isFile).filter(_.getName.startsWith("orig-")).sorted: _*)
+      val x: Seq[File] = Seq(d.listFiles.filter(_.isFile).sorted: _*)
       capture = CaptureTrait.get(x)
     }
     runRecognizer(capture)
@@ -184,7 +186,7 @@ class BackgroundSubtractorTest {
     var mog = createBackgroundSubtractorMOG2()
     mog.setDetectShadows(true)
     println("detect shadows: " + mog.getDetectShadows())
-    mog.setShadowValue(500)
+    mog.setShadowValue(255)
     mog.setComplexityReductionThreshold(0.05) // default: 0.05
     println("ComplexityReductionThreshold: " + mog.getComplexityReductionThreshold())
     mog.setBackgroundRatio(0.9999) // default: 0.9

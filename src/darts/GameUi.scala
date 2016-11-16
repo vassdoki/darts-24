@@ -31,12 +31,10 @@ import scala.swing.event.{ButtonClicked, WindowClosing, MouseReleased}
  */
 object GameUi extends  SimpleSwingApplication{
 
-  val CAMERA_DEV_NUM = 0
-
   val backgroundSubtractorTest = new BackgroundSubtractorTest
 
   val cameraCheckbox = new CheckBox("Use Camera")
-  val imageViews: List[Label] = List.fill(4) {
+  val imageViews: List[Label] = List.fill(1) {
     new Label
   }
   val fpsLabel = new Label
@@ -62,8 +60,8 @@ object GameUi extends  SimpleSwingApplication{
     contents = new BorderPanel() {
       add(new FlowPanel(buttonsPanel), BorderPanel.Position.North)
       add(
-        new GridPanel(rows0 = 2, cols0 = 2) {
-          for (i <- 0 to 3) {contents += new ScrollPane(imageViews(i))}
+        new GridPanel(rows0 = imageViews.size / 2 + 1, cols0 = imageViews.size / 2 + 1) {
+          for (i <- 0 to imageViews.size-1) {contents += new ScrollPane(imageViews(i))}
           preferredSize = new Dimension(1024, 768)
         }, BorderPanel.Position.Center)
     }
@@ -119,9 +117,9 @@ object GameUi extends  SimpleSwingApplication{
   def updateImage(imgNum: Int, imageIcon: ImageIcon) = {
     val fut = Future {
       Swing.onEDT {
-        println("future updateImage start")
+        //println(s"future updateImage start imgNum: $imgNum")
         imageViews(imgNum).icon = imageIcon
-        println("future updateImage end")
+        //println("future updateImage end")
         fpsLabel.text = f"C: $imgCount"
       }
     }

@@ -1,5 +1,7 @@
 package darts
 
+import javax.swing.ImageIcon
+
 import darts.util.{Config, CvUtil}
 import darts.util.CvUtil._
 import org.bytedeco.javacpp.{opencv_imgproc, opencv_features2d, BytePointer}
@@ -18,14 +20,17 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
   val OUTPUT_DIR = "/home/vassdoki/darts/v2/d"
   val prevTable: Mat = CvUtil.transform(paramPrevTable)
   // the first images are usually useless
-  val START_FROM_IMAGE = 2
+  val START_FROM_IMAGE = 5
   var imageCount = 0
 
   var mask = new Mat
   var imageBlured = new Mat
-  val images = scala.collection.mutable.ListBuffer.empty[Mat]
+  //val images = scala.collection.mutable.ListBuffer.empty[Mat]
+  var storedImage = new Mat
 
   val results = scala.collection.mutable.ArrayBuffer.empty[(Int, Int, Int, Int, Int)]
+
+  DartRecognizer.drCount += 1
 
   /**
    * new image to process
@@ -40,45 +45,51 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
       DartRecognizer.mog.clear()
       DartRecognizer.mog.apply(prevTable, mask, 1)
     }
-    
+
     if (imageCount > START_FROM_IMAGE) {
       val transformed = CvUtil.transform(imageMat)
-      images += transformed
+      //images += transformed
+      storedImage = transformed
       //CvUtil.drawTable(transformed, Config.COLOR_BLUE, 6)
-      DartRecognizer.mog.apply(transformed, mask, 0)
+      DartRecognizer.mog.apply(transformed, mask, 0.005)
       val nonZero = countNonZero(mask)
-      val kernelSize = 19
+      val kernelSize = 17
       medianBlur(mask, imageBlured, kernelSize)
 
       val (x, y) = findTopWhite(imageBlured)
       val (mod, num) = identifyNumber(new Point(x, y))
 
-      cvtColor(imageBlured, imageBlured, CV_GRAY2RGB)
-      cvtColor(mask, mask, CV_GRAY2RGB)
 
-      CvUtil.drawTable(mask, Config.COLOR_YELLOW, 1)
-      CvUtil.drawTable(imageBlured, Config.COLOR_YELLOW, 1)
-      CvUtil.drawNumbers(imageBlured, Config.COLOR_YELLOW)
-      circle(imageBlured, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
 
       val w = imageMat.size().width()
       val h = imageMat.size().height()
       val outMat = new Mat(imageMat.size(), imageMat.`type`())
       var resized = new Mat(h/2, w/2, imageMat.`type`())
       // IMG 1
+      circle(transformed, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
       resize(transformed, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
       resized.copyTo(outMat(new Rect(0,0,w/2,h/2)))
       // IMG 2
+      cvtColor(mask, mask, CV_GRAY2RGB)
+      //CvUtil.drawTable(mask, Config.COLOR_YELLOW, 1)
+      circle(mask, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
       resize(mask, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
       resized.copyTo(outMat(new Rect(w/2,0,w/2,h/2)))
       // IMG 3
+      cvtColor(imageBlured, imageBlured, CV_GRAY2RGB)
+      CvUtil.drawTable(imageBlured, Config.COLOR_YELLOW, 1)
+      CvUtil.drawNumbers(imageBlured, Config.COLOR_YELLOW)
+      circle(imageBlured, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
       resize(imageBlured, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
       resized.copyTo(outMat(new Rect(0,h/2,w/2,h/2)))
       // IMG 4
-//      resize(imageBlured, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
-//      resized.copyTo(outMat(new Rect(w/2,h/2,w/2,h/2)))
+      if (x > 50 && y > 50 && x + 51 < w && y + 51 < h) {
+        val hit = mask(new Rect(x - 50, y - 50, 101, 101))
+        resize(hit, resized, resized.size(), 2, 2, INTER_CUBIC)
+        resized.copyTo(outMat(new Rect(w / 2, h / 2, w / 2, h / 2)))
+      }
 
-      putText(outMat, f"Number: $num (modifier: $mod)", new Point(50,h/2+50),
+      putText(outMat, f"Number: $num (modifier: $mod)", new Point(w / 2 + 50,30),
         FONT_HERSHEY_PLAIN, // font type
         2, // font scale
         Config.COLOR_YELLOW, // text color (here white)
@@ -86,7 +97,18 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
         8, // Line type.
         false)
 
-      imwrite(f"${OUTPUT_DIR}/${imgName}-b-$imageCount%04d-zero:$nonZero%06d-num:$num% 2d-mod:$mod% 2d.jpg", outMat)
+      putText(outMat, s"drC: ${DartRecognizer.drCount}", new Point(w / 2 - 20, 30),
+        FONT_HERSHEY_PLAIN, // font type
+        1, // font scale
+        Config.COLOR_YELLOW, // text color (here white)
+        3, // text thickness
+        8, // Line type.
+        false)
+
+      imwrite(f"${OUTPUT_DIR}/${imgName}-a-$imageCount%04d-zero:$nonZero%06d-num:$num% 2d-mod:$mod% 2d.jpg", mask)
+      //imwrite(f"${OUTPUT_DIR}/${imgName}-b-$imageCount%04d-zero:$nonZero%06d-num:$num% 2d-mod:$mod% 2d.jpg", outMat)
+      GameUi.updateImage(0,new ImageIcon(CvUtil.toBufferedImage(outMat)))
+
       outMat.release()
       resized.release()
 
@@ -97,11 +119,12 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
   }
 
   def getImage(num: Int) : Mat = {
-    if (num >= images.size) {
-      images(images.size - 1) 
-    } else {
-      images(num)
-    }
+//    if (num >= images.size) {
+//      images(images.size - 1)
+//    } else {
+//      images(num)
+//    }
+    storedImage
   }
 
   // TODO: ezt csak igy lehet?
@@ -112,16 +135,21 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
    * @return (mod, num): mod: 1, 2(double), 3(triple), num: the number hit
    */
   def getResult: Tuple2[Int, Int] = {
-    val res = results.reduceLeft((a, b) => if (a._1 < b._1) a else b)
-    println("result: results.size: " + results.size + " mod: " + res._2 + " num: " + res._3)
-    (res._2, res._3)
+    if (results.isEmpty) {
+      (0,0)
+    } else {
+      val res = results.reduceLeft((a, b) => if (a._1 < b._1) a else b)
+      //println("result: results.size: " + results.size + " mod: " + res._2 + " num: " + res._3)
+      (res._2, res._3)
+    }
   }
 
   def release = {
     prevTable.release()
     mask.release()
     imageBlured.release()
-    images.foreach(i => i.release())
+    //images.foreach(i => i.release())
+    storedImage.release()
   }
 
   def identifyNumber(p: Point): Pair[Int, Int] = {
@@ -186,24 +214,30 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
 
 object DartRecognizer {
   val mog = createMog
+  var drCount = 0
 
   def createMog: BackgroundSubtractorMOG2 = {
     var mog = createBackgroundSubtractorMOG2()
+    mog.setShadowValue(255)
+    mog.setVarThreshold(30) // default: 16
+    /*
     mog.setDetectShadows(true)
     println("detect shadows: " + mog.getDetectShadows())
-    mog.setShadowValue(500)
+    mog.setShadowValue(100)
+    mog.setShadowThreshold(0.2)
     mog.setComplexityReductionThreshold(0.05) // default: 0.05
     println("ComplexityReductionThreshold: " + mog.getComplexityReductionThreshold())
-    mog.setBackgroundRatio(0.9999) // default: 0.9
+    mog.setBackgroundRatio(0.7) // default: 0.9
     println("BackgroundRatio: " + mog.getBackgroundRatio)
     mog.setVarMin(4) // default: 4
     println("varMin: " + mog.getVarMin)
     mog.setVarMax(75) // default: 75
     println("varMax: " + mog.getVarMax)
-    mog.setVarThreshold(128) // default: 16
+    mog.setVarThreshold(400) // default: 16
     println("varThreshold: " + mog.getVarThreshold)
     mog.setVarThresholdGen(9) // default: 9
     println("varThresholdGen: " + mog.getVarThresholdGen)
+    */
     mog
   }
 
