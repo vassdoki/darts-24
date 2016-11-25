@@ -31,24 +31,25 @@ import scala.swing.event.{ButtonClicked, WindowClosing, MouseReleased}
  */
 object GameUi extends  SimpleSwingApplication{
 
-  val backgroundSubtractorTest = new BackgroundSubtractorTest
+  var guiCreated = false
+  val backgroundSubtractorTest1 = new BackgroundSubtractorTest
+  val backgroundSubtractorTest2 = new BackgroundSubtractorTest
 
   val cameraCheckbox = new CheckBox("Use Camera")
-  val imageViews: List[Label] = List.fill(1) {
+  val imageViews: List[Label] = List.fill(4) {
     new Label
   }
   val fpsLabel = new Label
   var imgCount = 0
   var openedImage: Mat = null
   var openedImageClone: Mat = null
-  val conf = Config.getProperties
 
   val defaultDirectory = "/home/vassdoki/darts/v2/cam-aug11"
   private lazy val fileChooser = new FileChooser(new File(defaultDirectory))
 
 
   def top: Frame = new MainFrame {
-
+    guiCreated = true
     val buttonsPanel = new FlowPanel() {
       contents += cameraCheckbox
 //      contents += new Button(openImageAction)
@@ -60,7 +61,7 @@ object GameUi extends  SimpleSwingApplication{
     contents = new BorderPanel() {
       add(new FlowPanel(buttonsPanel), BorderPanel.Position.North)
       add(
-        new GridPanel(rows0 = imageViews.size / 2 + 1, cols0 = imageViews.size / 2 + 1) {
+        new GridPanel(rows0 = Math.sqrt(imageViews.size).toInt, cols0 = Math.sqrt(imageViews.size).toInt) {
           for (i <- 0 to imageViews.size-1) {contents += new ScrollPane(imageViews(i))}
           preferredSize = new Dimension(1024, 768)
         }, BorderPanel.Position.Center)
@@ -85,42 +86,43 @@ object GameUi extends  SimpleSwingApplication{
 
     override def closeOperation(): Unit = {
       //darts.CaptureTest.releaseCamera()
+      BackgroundSubtractorTest.cameraAllowed = false
+      Thread.sleep(50)
       println("Closing applicatoin")
       top.close()
       exit(0)
     }
   }
 
-  def updateTransformCheck(x: Mat): Unit = {
-    imageViews(0).icon = new ImageIcon(CvUtil.toBufferedImage(x))
-    val y = CvUtil.transform(x)
-    val color: Scalar = new Scalar(250, 250, 5, 0)
-    CvUtil.drawTable(y, color)
-    imageViews(1).icon = new ImageIcon(CvUtil.toBufferedImage(y))
-  }
-
-
   def setCameraState = {
     if (cameraCheckbox.selected) {
       // start the camera
       println("start the camera")
-      backgroundSubtractorTest.cameraAllowed = true
-      val fut = Future{
-        backgroundSubtractorTest.continousCameraUpdate
+      BackgroundSubtractorTest.cameraAllowed = true
+      val fut1 = Future{
+        println("1 varunk")
+        Thread.sleep(1000)
+        println("1 mehet")
+        backgroundSubtractorTest1.continousCameraUpdate(-1)
+      }
+      val fut2 = Future{
+        backgroundSubtractorTest2.continousCameraUpdate(-2)
       }
     } else {
-      backgroundSubtractorTest.cameraAllowed = false
+      BackgroundSubtractorTest.cameraAllowed = false
     }
   }
 
 
   def updateImage(imgNum: Int, imageIcon: ImageIcon) = {
-    val fut = Future {
-      Swing.onEDT {
-        //println(s"future updateImage start imgNum: $imgNum")
-        imageViews(imgNum).icon = imageIcon
-        //println("future updateImage end")
-        fpsLabel.text = f"C: $imgCount"
+    if (guiCreated) {
+      val fut = Future {
+        Swing.onEDT {
+          //println(s"future updateImage start imgNum: $imgNum")
+          imageViews(Math.abs(imgNum)).icon = imageIcon
+          //println("future updateImage end")
+          fpsLabel.text = f"C: $imgCount"
+        }
       }
     }
   }

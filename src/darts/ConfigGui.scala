@@ -31,7 +31,6 @@ import scala.swing.event.{ButtonClicked, WindowClosing, MouseReleased}
  */
 object ConfigGui extends SimpleSwingApplication{
 
-  val CAMERA_DEV_NUM = 1
   var cameraAllowed = false
   val cameraCheckbox = new CheckBox("Use Camera")
   val imageViews: List[Label] = List.fill(2) {
@@ -40,14 +39,14 @@ object ConfigGui extends SimpleSwingApplication{
   val transCheckbox: List[CheckBox] = List.fill(4) {new CheckBox}
   var transCheckboxSelected: Int = 0
   //val transLabel = List("bull", "4", "14", "17")
-  val transLabel = List("9a", "4a", "15t", "16t", "B")
+  val transLabel = List("9(14)", "4(13)", "15(10)", "16(8)", "B")
   val fpsLabel = new Label
   var imgCount = 0
   var openedImage: Mat = null
   var openedImageClone: Mat = null
   val conf = Config.getProperties
 
-  val defaultDirectory = "/home/vassdoki/darts/v2/cam-aug11"
+  val defaultDirectory = "/home/vassdoki/darts/v2/test"
   private lazy val fileChooser = new FileChooser(new File(defaultDirectory))
 
 
@@ -168,7 +167,7 @@ object ConfigGui extends SimpleSwingApplication{
     }
 
       imageViews(0).icon = new ImageIcon(toBufferedImage(x))
-      val y = CvUtil.transform(x)
+      val y = CvUtil.transform(x, Config.CAMERA_DEV_NUM)
       val color: Scalar = new Scalar(250, 250, 5, 0)
       CvUtil.drawTable(y, color)
       imageViews(1).icon = new ImageIcon(toBufferedImage(y))
@@ -194,7 +193,7 @@ object ConfigGui extends SimpleSwingApplication{
   }
 
   def continousCameraUpdate = {
-    val capture = CaptureTrait.get(CAMERA_DEV_NUM)
+    val capture = CaptureTrait.get
     var mat: Mat = null
     while (cameraAllowed) {
       mat = capture.captureFrame
@@ -203,7 +202,8 @@ object ConfigGui extends SimpleSwingApplication{
       updateImage(0, new ImageIcon(toBufferedImage(mat)))
       Thread.sleep(20)
     }
-    CaptureTrait.releaseCamera()
+    capture.release
+    //CaptureTrait.releaseCamera()
   }
 
   def updateImage(imgNum: Int, imageIcon: ImageIcon) = {

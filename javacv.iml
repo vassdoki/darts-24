@@ -28,5 +28,7 @@
     <orderEntry type="library" name="Maven: org.bytedeco.javacpp-presets:flandmark:linux-x86_64:1.07-1.2" level="project" />
     <orderEntry type="library" name="Maven: org.bytedeco.javacpp-presets:opencv:3.1.0-1.2" level="project" />
     <orderEntry type="library" name="Maven: org.bytedeco.javacpp-presets:opencv:linux-x86_64:3.1.0-1.2" level="project" />
+    <orderEntry type="library" name="Maven: joda-time:joda-time:2.9.4" level="project" />
+    <orderEntry type="library" name="Maven: org.joda:joda-convert:1.8.1" level="project" />
   </component>
 </module>

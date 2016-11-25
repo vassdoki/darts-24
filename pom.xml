@@ -34,5 +34,15 @@
             <artifactId>opencv</artifactId>
             <version>3.1.0-1.2</version>
         </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.9.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.joda</groupId>
+            <artifactId>joda-convert</artifactId>
+            <version>1.8.1</version>
+        </dependency>
     </dependencies>
 </project>

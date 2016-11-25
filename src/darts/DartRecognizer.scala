@@ -10,112 +10,154 @@ import org.bytedeco.javacpp.opencv_imgcodecs._
 import org.bytedeco.javacpp.opencv_imgproc._
 import org.bytedeco.javacpp.opencv_video._
 import org.bytedeco.javacpp.opencv_features2d._
+import org.joda.time.DateTime
 
 import scala.collection.parallel.mutable
 
 /**
  * Created by vassdoki on 2016.08.12..
  */
-class DartRecognizer(paramPrevTable: Mat, imgName: String) {
-  val OUTPUT_DIR = "/home/vassdoki/darts/v2/d"
-  val prevTable: Mat = CvUtil.transform(paramPrevTable)
-  // the first images are usually useless
-  val START_FROM_IMAGE = 5
+class DartRecognizer(pImgName: String, camNum: Int) {
+  val imgName = pImgName
   var imageCount = 0
 
-  var mask = new Mat
+  var maskColoredTransformed: Mat = null
+
   var imageBlured = new Mat
   //val images = scala.collection.mutable.ListBuffer.empty[Mat]
-  var storedImage = new Mat
+  var storedOrig = new Mat
 
   val results = scala.collection.mutable.ArrayBuffer.empty[(Int, Int, Int, Int, Int)]
-
-  DartRecognizer.drCount += 1
 
   /**
    * new image to process
    * @param imageMat
    */
-  def newImage(imageMat: Mat) = {
+  def newImage(imageMat: Mat, maskOrig: Mat, camNum2: Int): Mat = {
     imageCount += 1
+    //println(s"new image $imageCount (cam: $camNum)")
 
-    if (imageCount == 1) {
-      // initialize mog
-      //CvUtil.drawTable(prevTable, Config.COLOR_BLUE, 6)
-      DartRecognizer.mog.clear()
-      DartRecognizer.mog.apply(prevTable, mask, 1)
-    }
+    try {
+      val transformedOrig = CvUtil.transform(imageMat, camNum)
+      //imwrite(f"${Config.OUTPUT_DIR}/${imgName}-b-$imageCount%04d-cam$camNum.jpg", transformedOrig)
 
-    if (imageCount > START_FROM_IMAGE) {
-      val transformed = CvUtil.transform(imageMat)
-      //images += transformed
-      storedImage = transformed
-      //CvUtil.drawTable(transformed, Config.COLOR_BLUE, 6)
-      DartRecognizer.mog.apply(transformed, mask, 0.005)
-      val nonZero = countNonZero(mask)
-      val kernelSize = 17
+
+      val color = if (Math.abs(camNum) == 1) Config.COLOR_GREEN else Config.COLOR_RED
+      val maskBlue = new Mat(maskOrig.size(), CV_8UC3, color)
+      //maskBlue.setTo(Config.COLOR_WHITE, maskOrig)
+      val matBlack = new Mat(maskOrig.size(), CV_8UC3, Config.COLOR_BLACK)
+      maskBlue.copyTo(matBlack, maskOrig)
+      maskBlue.release()
+      //setTo(matBlack, maskOrig)
+      //threshold()
+      maskColoredTransformed = CvUtil.transform(matBlack, camNum)
+      if (Config.SAVE_DR_COLORED) {
+        imwrite(f"${Config.OUTPUT_DIR}/${imgName.replace(s"d${camNum}-", "")}-${camNum}.jpg", maskColoredTransformed)
+      }
+
+      val mask = CvUtil.transform(maskOrig, camNum)
+      //val transformedOrig = imageMat
+
+      //images += transformedOrig
+      storedOrig = imageMat
+      //CvUtil.drawTable(transformedOrig, Config.COLOR_BLUE, 6)
+      val kernelSize = 5
       medianBlur(mask, imageBlured, kernelSize)
 
       val (x, y) = findTopWhite(imageBlured)
       val (mod, num) = identifyNumber(new Point(x, y))
 
+      //      circle(imageBlured, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
+      //      imwrite(f"${OUTPUT_DIR}/a-$imageCount%04d-${imgName}-zero:$nonZero%06d-num:$num% 2d-mod:$mod% 2d.jpg", imageBlured)
+      //      GameUi.updateImage(0,new ImageIcon(CvUtil.toBufferedImage(imageBlured)))
 
+      if (Config.SAVE_DR_STATE) {
+        val w = imageMat.size().width()
+        val h = imageMat.size().height()
+        val outMat = new Mat(imageMat.size(), imageMat.`type`())
+        var resized = new Mat(h / 2, w / 2, imageMat.`type`())
+        // IMG 1
+        circle(transformedOrig, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
+        resize(transformedOrig, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+        resized.copyTo(outMat(new Rect(0, 0, w / 2, h / 2)))
+        // IMG 2
+        cvtColor(mask, mask, CV_GRAY2RGB)
+        //CvUtil.drawTable(mask, Config.COLOR_YELLOW, 1)
+        circle(mask, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
+        resize(mask, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+        resized.copyTo(outMat(new Rect(w / 2, 0, w / 2, h / 2)))
+        // IMG 3
+        cvtColor(imageBlured, imageBlured, CV_GRAY2RGB)
+        CvUtil.drawTable(imageBlured, Config.COLOR_YELLOW, 1)
+        CvUtil.drawNumbers(imageBlured, Config.COLOR_YELLOW)
+        circle(imageBlured, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
+        resize(imageBlured, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+        resized.copyTo(outMat(new Rect(0, h / 2, w / 2, h / 2)))
+        // IMG 4
+        if (x > 50 && y > 50 && x + 51 < w && y + 51 < h) {
+          val hit = mask(new Rect(x - 50, y - 50, 101, 101))
+          resize(hit, resized, resized.size(), 2, 2, INTER_CUBIC)
+          resized.copyTo(outMat(new Rect(w / 2, h / 2, w / 2, h / 2)))
+        }
 
-      val w = imageMat.size().width()
-      val h = imageMat.size().height()
-      val outMat = new Mat(imageMat.size(), imageMat.`type`())
-      var resized = new Mat(h/2, w/2, imageMat.`type`())
-      // IMG 1
-      circle(transformed, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
-      resize(transformed, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
-      resized.copyTo(outMat(new Rect(0,0,w/2,h/2)))
-      // IMG 2
-      cvtColor(mask, mask, CV_GRAY2RGB)
-      //CvUtil.drawTable(mask, Config.COLOR_YELLOW, 1)
-      circle(mask, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
-      resize(mask, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
-      resized.copyTo(outMat(new Rect(w/2,0,w/2,h/2)))
-      // IMG 3
-      cvtColor(imageBlured, imageBlured, CV_GRAY2RGB)
-      CvUtil.drawTable(imageBlured, Config.COLOR_YELLOW, 1)
-      CvUtil.drawNumbers(imageBlured, Config.COLOR_YELLOW)
-      circle(imageBlured, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
-      resize(imageBlured, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
-      resized.copyTo(outMat(new Rect(0,h/2,w/2,h/2)))
-      // IMG 4
-      if (x > 50 && y > 50 && x + 51 < w && y + 51 < h) {
-        val hit = mask(new Rect(x - 50, y - 50, 101, 101))
-        resize(hit, resized, resized.size(), 2, 2, INTER_CUBIC)
-        resized.copyTo(outMat(new Rect(w / 2, h / 2, w / 2, h / 2)))
+        putText(outMat, f"Number: $num (modifier: $mod)", new Point(w / 2 + 50, 30),
+          FONT_HERSHEY_PLAIN, // font type
+          2, // font scale
+          Config.COLOR_YELLOW, // text color (here white)
+          3, // text thickness
+          8, // Line type.
+          false)
+
+        //imwrite(f"${Config.OUTPUT_DIR}/${imgName}-a-$imageCount%04d-zero:$nonZero%06d-num:$num% 2d-mod:$mod% 2d.jpg", mask)
+        imwrite(f"${Config.OUTPUT_DIR}/${imgName.replace(s"d${camNum}-", "")}-${camNum}-$imageCount%04d-num:$num% 2d-mod:$mod% 2d.jpg", outMat)
+
+        outMat.release()
+        resized.release()
       }
 
-      putText(outMat, f"Number: $num (modifier: $mod)", new Point(w / 2 + 50,30),
-        FONT_HERSHEY_PLAIN, // font type
-        2, // font scale
-        Config.COLOR_YELLOW, // text color (here white)
-        3, // text thickness
-        8, // Line type.
-        false)
+      if (Config.GUI_UPDATE) {
+        val w = imageMat.size().width()
+        val h = imageMat.size().height()
+        val outMat = new Mat(imageMat.size(), imageMat.`type`())
+        // IMG 1
+        CvUtil.drawTable(transformedOrig, Config.COLOR_YELLOW, 1)
+        CvUtil.drawNumbers(transformedOrig, Config.COLOR_YELLOW)
+        circle(transformedOrig, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
 
-      putText(outMat, s"drC: ${DartRecognizer.drCount}", new Point(w / 2 - 20, 30),
-        FONT_HERSHEY_PLAIN, // font type
-        1, // font scale
-        Config.COLOR_YELLOW, // text color (here white)
-        3, // text thickness
-        8, // Line type.
-        false)
+        putText(transformedOrig, f"File${imgName} cam: $camNum", new Point(20, 20),
+          FONT_HERSHEY_PLAIN, // font type
+          2, // font scale
+          Config.COLOR_RED, // text color (here white)
+          3, // text thickness
+          8, // Line type.
+          false)
+        putText(transformedOrig, f"Number: $num (modifier: $mod)", new Point(20, 40),
+          FONT_HERSHEY_PLAIN, // font type
+          2, // font scale
+          Config.COLOR_RED, // text color (here white)
+          3, // text thickness
+          8, // Line type.
+          false)
 
-      imwrite(f"${OUTPUT_DIR}/${imgName}-a-$imageCount%04d-zero:$nonZero%06d-num:$num% 2d-mod:$mod% 2d.jpg", mask)
-      //imwrite(f"${OUTPUT_DIR}/${imgName}-b-$imageCount%04d-zero:$nonZero%06d-num:$num% 2d-mod:$mod% 2d.jpg", outMat)
-      GameUi.updateImage(0,new ImageIcon(CvUtil.toBufferedImage(outMat)))
+        resize(transformedOrig, outMat, outMat.size(), 0.5, 0.5, INTER_CUBIC)
 
-      outMat.release()
-      resized.release()
+        GameUi.updateImage(Math.abs(camNum) - 1, new ImageIcon(CvUtil.toBufferedImage(outMat)))
+        outMat.release()
+      }
+      Thread.`yield`()
 
-
-      //transformed.release()
-      results += Tuple5(nonZero, mod, num, x, y)
+      //transformedOrig.release()
+      results += Tuple5(0, mod, num, x, y)
+      //println(s"end image $imageCount (cam: $camNum)")
+      maskColoredTransformed
+    }catch {
+      case e: Exception => {
+        println("EXCEPTION in new image")
+        e.printStackTrace()
+        null
+      }
     }
+
   }
 
   def getImage(num: Int) : Mat = {
@@ -124,11 +166,8 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
 //    } else {
 //      images(num)
 //    }
-    storedImage
+    storedOrig
   }
-
-  // TODO: ezt csak igy lehet?
-  def getStartImgName = imgName
 
   /**
    * Return the result and free every allocated memory
@@ -145,11 +184,9 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
   }
 
   def release = {
-    prevTable.release()
-    mask.release()
     imageBlured.release()
     //images.foreach(i => i.release())
-    storedImage.release()
+    storedOrig.release()
   }
 
   def identifyNumber(p: Point): Pair[Int, Int] = {
@@ -175,15 +212,21 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
   def findTopWhite(m: Mat) : (Int, Int) = {
     // TODO: implement it using Mat
     val i = new IplImage(m)
-    val w = i.width()
-    val d: BytePointer = i.imageData()
+    val w = m.rows
+    val h = m.cols
+    if (w == 0 || h == 0) {
+      println("valami nincs rendben")
+      (0,0)
+    } else {
+      val d: BytePointer = i.imageData()
 
-    var j: Int = 0
-    while((d.get(j) == 0 || d.get(j+1) == 0) && j < 960 * 720) {
-      j = j + 2
+      var j: Int = 0
+      while (j < (h * w) - 1 && (d.get(j) == 0 || d.get(j + 1) == 0)) {
+        j = j + 2
+      }
+      i.release()
+      (j % w, j / w)
     }
-    i.release()
-    (j % w, j / w)
   }
 
   def detectBlobs(pimage: Mat) = {
@@ -207,19 +250,19 @@ class DartRecognizer(paramPrevTable: Mat, imgName: String) {
     for (i <- 0 to kv.size().toInt){
       drawCross(image, kv.get(i).pt.x.toInt, kv.get(i).pt.y.toInt)
     }
-    imwrite(f"${OUTPUT_DIR}/${imgName}-b-$imageCount%04d-mask.jpg", image)
+    imwrite(f"${Config.OUTPUT_DIR}/${imgName}-b-$imageCount%04d-mask.jpg", image)
     image.release()
   }
+
 }
 
 object DartRecognizer {
-  val mog = createMog
-  var drCount = 0
+  //val mog = createMog
 
   def createMog: BackgroundSubtractorMOG2 = {
     var mog = createBackgroundSubtractorMOG2()
     mog.setShadowValue(255)
-    mog.setVarThreshold(30) // default: 16
+    mog.setVarThreshold(16) // default: 16
     /*
     mog.setDetectShadows(true)
     println("detect shadows: " + mog.getDetectShadows())

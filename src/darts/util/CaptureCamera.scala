@@ -5,6 +5,7 @@ import java.io.File
 import org.bytedeco.javacpp.opencv_core.Mat
 import org.bytedeco.javacpp.opencv_imgcodecs._
 import org.bytedeco.javacpp.opencv_videoio._
+import org.joda.time.DateTime
 
 import scala.math._
 
@@ -17,15 +18,14 @@ class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
   var imageNumber = 0
 
   val rate = capture.get(CAP_PROP_FPS)
-  println("Frame rate: " + rate + "fps")
+  println(s"Default (${videoDeviceNumber}) Frame rate: " + rate + "fps width: " + capture.get(CAP_PROP_FRAME_WIDTH).toInt + " height: " + capture.get(CAP_PROP_FRAME_HEIGHT).toInt)
   val frame       = new Mat()
   //  val canvasFrame = new CanvasFrame("Extracted Frame", 1)
-  capture.set(CAP_PROP_FRAME_WIDTH, 960)
+  capture.set(CAP_PROP_FRAME_WIDTH, 1920)
   capture.set(CAP_PROP_FRAME_HEIGHT, 720)
 
   val width       = capture.get(CAP_PROP_FRAME_WIDTH).toInt
   val height      = capture.get(CAP_PROP_FRAME_HEIGHT).toInt
-  println(f"camera width: $width hegith: $height")
 
   def captureFrame: Mat = {
     capture.read(frame)
@@ -34,7 +34,7 @@ class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
   }
 
   def lastFilename: String = {
-    f"cam-video$videoDeviceNumber-$imageNumber"
+    s"${Config.timeFormatter.print(DateTime.now)}"
   }
 
   def release = {

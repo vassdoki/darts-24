@@ -12,8 +12,8 @@ import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
  * Created by vassdoki on 2016.08.11..
  */
 object CvUtil {
-  def transform(image: Mat): Mat = {
-    val config = Config.getProperties
+  def transform(image: Mat, cam: Int): Mat = synchronized {
+    val config = Config.getProperties(cam)
     //val src: Array[Float] = (0 to 3).map { i => List(config.trSrc(i).x.toFloat, config.trSrc(i).y.toFloat) }.flatten.toArray
     val src = config.trSrc.map(p => new Point2f(p.getX.toFloat, p.getY.toFloat)).toSeq
     val dst = (0 to 3).map(i => new Point2f(Config.transformationDst(i * 2), Config.transformationDst(i*2 + 1))).toSeq
@@ -29,7 +29,7 @@ object CvUtil {
     i2
   }
 
-  def toMatPoint2f(points: Seq[Point2f]): Mat = {
+  def toMatPoint2f(points: Seq[Point2f]): Mat = synchronized  {
     // Create Mat representing a vector of Points3f
     val dest = new Mat(1, points.size, CV_32FC2)
     val indx = dest.createIndexer().asInstanceOf[FloatIndexer]
@@ -42,7 +42,7 @@ object CvUtil {
     dest
   }
 
-  def toMatArrayFloat(f: Array[Float]): Mat = {
+  def toMatArrayFloat(f: Array[Float]): Mat =  synchronized {
     // Create Mat representing a vector of Points3f
     val dest = new Mat(1, f.size, CV_32F)
     val indx = dest.createIndexer().asInstanceOf[FloatIndexer]
@@ -54,7 +54,7 @@ object CvUtil {
   }
 
 
-  def drawTable(src: Mat, color: Scalar, lineWidth: Int = 2) = {
+  def drawTable(src: Mat, color: Scalar, lineWidth: Int = 2) =  synchronized {
     val bull: Point = new Point(Config.bull.x, Config.bull.y)
 
     Config.distancesFromBull map { dist => circle(src, bull, dist, color, lineWidth, 8, 0) }
@@ -63,7 +63,7 @@ object CvUtil {
     }
   }
 
-  def drawNumbers(src: Mat, color: Scalar) = {
+  def drawNumbers(src: Mat, color: Scalar) =  synchronized {
     val bull: Point = new Point(Config.bull.x, Config.bull.y)
 
     var i = 0
@@ -79,7 +79,7 @@ object CvUtil {
     }
   }
 
-  def drawCross(src: Mat, x: Int, y: Int, colorNum: Int = 0, size: Int = 10) = {
+  def drawCross(src: Mat, x: Int, y: Int, colorNum: Int = 0, size: Int = 10) =  synchronized {
     val color = List(
       new Scalar(51,255,255,0),new Scalar(255,51,255,0),new Scalar(255,255,51,0)
     )
@@ -87,19 +87,36 @@ object CvUtil {
     line(src, new Point(x,y - size), new Point(x,y+size), color(colorNum), 2, 8, 0)
   }
 
-  def rotatePoint(c: Point, degree: Float, radius: Float): Point = {
+  def rotatePoint(c: Point, degree: Float, radius: Float): Point = synchronized  {
     val cos = Math.cos(Math.PI * degree / 180)
     val sin = Math.sin(Math.PI * degree / 180)
     new Point((c.x + cos * radius).toInt, (c.y - sin * radius).toInt)
   }
 
-  def toBufferedImage(mat: Mat): BufferedImage = {
-    val openCVConverter = new ToMat()
-    val java2DConverter = new Java2DFrameConverter()
-    java2DConverter.convert(openCVConverter.convert(mat))
+  def toBufferedImage(mat: Mat): BufferedImage =  synchronized {
+    try {
+      val openCVConverter = new ToMat()
+      val java2DConverter = new Java2DFrameConverter()
+      if (openCVConverter == null || java2DConverter == null) {
+        println("CONVERTER NULL")
+        null
+      } else {
+        if (mat == null) {
+          println("MAT NULL??")
+          null
+        } else {
+          java2DConverter.convert(openCVConverter.convert(mat))
+        }
+      }
+    }catch {
+      case e: Exception => {
+        println("ToBufferedImage EXCEPTION")
+        null
+      }
+    }
   }
 
-  def getDistanceFromBull(p: Point): Double = {
+  def getDistanceFromBull(p: Point): Double =  synchronized {
     Math.sqrt(sq(Config.bull.x - p.x) + sq(Config.bull.y - p.y))
   }
 
