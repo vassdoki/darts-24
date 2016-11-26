@@ -12,6 +12,10 @@ import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
  * Created by vassdoki on 2016.08.11..
  */
 object CvUtil {
+  val openCVConverter = new ToMat()
+  val java2DConverter = new Java2DFrameConverter()
+
+
   def transform(image: Mat, cam: Int): Mat = synchronized {
     val config = Config.getProperties(cam)
     //val src: Array[Float] = (0 to 3).map { i => List(config.trSrc(i).x.toFloat, config.trSrc(i).y.toFloat) }.flatten.toArray
@@ -95,8 +99,6 @@ object CvUtil {
 
   def toBufferedImage(mat: Mat): BufferedImage =  synchronized {
     try {
-      val openCVConverter = new ToMat()
-      val java2DConverter = new Java2DFrameConverter()
       if (openCVConverter == null || java2DConverter == null) {
         println("CONVERTER NULL")
         null
@@ -111,6 +113,7 @@ object CvUtil {
     }catch {
       case e: Exception => {
         println("ToBufferedImage EXCEPTION")
+        e.printStackTrace()
         null
       }
     }

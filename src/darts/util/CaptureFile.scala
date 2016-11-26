@@ -31,8 +31,10 @@ class CaptureFile (inputFiles: Seq[File], camNum: Int) extends CaptureTrait{
       lastOrigFilename = file.getName
       lastFilename = file.getName.substring(3, 26)
       CaptureFile.lastFile(camNum-1) = lastFilename
-      while(lastFilename > CaptureFile.lastFile(otherCamNum-1) && CaptureFile.lastFile(otherCamNum-1) != "") {
-        Thread.sleep(10)
+      if (Config.CAM_FILE_SYNC_INPUT) {
+        while (lastFilename > CaptureFile.lastFile(otherCamNum - 1) && CaptureFile.lastFile(otherCamNum - 1) != "") {
+          Thread.sleep(10)
+        }
       }
       CaptureFile.rest(camNum-1) = CaptureFile.rest(camNum-1).tail
       imageNumber += 1

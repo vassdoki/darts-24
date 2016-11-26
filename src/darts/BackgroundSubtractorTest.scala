@@ -34,7 +34,7 @@ class BackgroundSubtractorTest {
   val SKIP_STORED_FILE = 0
 
   // this triggers the dart recognision
-  val MIN_NONE_ZERO = 1000 // if below, then the table is empty
+  val MIN_NONE_ZERO = 2000 // if below, then the table is empty
   val MAX_NONE_ZERO = 40000 // if above, then hands are visible
 
   /*
@@ -67,6 +67,11 @@ class BackgroundSubtractorTest {
     try {
       while (BackgroundSubtractorTest.cameraAllowed) {
         imageMat = camera.captureFrame
+        var toBufferedImage: BufferedImage = CvUtil.toBufferedImage(imageMat)
+        if (toBufferedImage != null) {
+          if (Config.GUI_UPDATE && Math.abs(camNum) == 1) GameUi.updateImage(3, new ImageIcon(toBufferedImage))
+        }
+
         while (imageMat == null || imageMat.rows != 720 || imageMat.cols != 1280) {
           println(s"Error reading the camera ($camNum)")
           imageMat = camera.captureFrame
@@ -90,13 +95,13 @@ class BackgroundSubtractorTest {
             }
             case (0, z) if z > MIN_NONE_ZERO => {
               if (dartRecognizer != null) {
-                handleRecognizerResultAndCLose(dartRecognizer)
+                dartRecognizer.release
               }
               if (countZero < MAX_NONE_ZERO) {
                 if (Config.PROC_CALL_DART_RECOGNIZE) {
                   dartRecognizer = startNewRecognizer(camera.lastFilename, camNum)
                   val resultMask = dartRecognizer.newImage(imageMat, mask, camNum)
-                  BackgroundSubtractorTest.compareResult(resultMask, camera.lastFilename, camNum)
+                  //BackgroundSubtractorTest.compareResult(resultMask, camera.lastFilename, camNum)
                 }
                 state = 1
               } else {
@@ -115,7 +120,7 @@ class BackgroundSubtractorTest {
               // recognizer active, and mog still reports change
               if (Config.PROC_CALL_DART_RECOGNIZE) {
                 val resultMask = dartRecognizer.newImage(imageMat, mask, camNum)
-                BackgroundSubtractorTest.compareResult(resultMask, camera.lastFilename, camNum)
+                //BackgroundSubtractorTest.compareResult(resultMask, camera.lastFilename, camNum)
               }
             }
             case (1, z) if z <= MIN_NONE_ZERO => {
@@ -126,6 +131,7 @@ class BackgroundSubtractorTest {
               state = 0
             }
             case (2, z) if z <= MIN_NONE_ZERO => {
+              BackgroundSubtractorTest.resetResult
               state = 0
             }
             case (2, z) if z > MIN_NONE_ZERO => {
@@ -135,11 +141,12 @@ class BackgroundSubtractorTest {
           //println(f"file: ${camera.lastFilename} zero: $countZero state: $state)")
           if (Config.SAVE_MOG) {
             //if (countZero >= MIN_NONE_ZERO && countZero <= MAX_NONE_ZERO)
+            if (countZero >= 500)
             imwrite(f"${Config.OUTPUT_DIR}/${camera.lastFilename}-cam:$camNum-zero:$countZero%06d-state:$state.jpg", mask);
           }
-          if (Config.GUI_UPDATE && Math.abs(camNum) == 1) {
+          if (Config.GUI_UPDATE) {
             // && Math.abs(camNum) == 2
-            putText(mask, f"State: ${state} zero: ${countZero}%6d count: ${imgCount}", new Point(20, 20),
+            putText(mask, f"State: ${state} zero: ${countZero}%6d count: ${imgCount} file: ${camera.lastOrigFilename}", new Point(20, 20),
               FONT_HERSHEY_PLAIN, // font type
               1, // font scale
               Config.COLOR_WHITE, // text color (here white)
@@ -148,7 +155,7 @@ class BackgroundSubtractorTest {
               false)
             val bufferedImage: BufferedImage = CvUtil.toBufferedImage(mask)
             if (bufferedImage != null) {
-              if (Config.GUI_UPDATE) GameUi.updateImage(2, new ImageIcon(bufferedImage))
+              if (Config.GUI_UPDATE) GameUi.updateImage(Math.abs(camNum) - 1, new ImageIcon(bufferedImage))
             } else {
               println("BUFFERED IMAGE NULL ?????")
             }
@@ -173,8 +180,9 @@ class BackgroundSubtractorTest {
 
   def handleRecognizerResultAndCLose(dartRecognizer: DartRecognizer) = {
     val (result_mod, result_num) = dartRecognizer.getResult
-    val image = dartRecognizer.getImage(5)
-    val color: Scalar = new Scalar(250, 250, 5, 0)
+    val image = dartRecognizer.getResultImage
+    BackgroundSubtractorTest.compareResult(image, dartRecognizer.imgName, dartRecognizer.myCamNum)
+    //val color: Scalar = new Scalar(250, 250, 5, 0)
     //println(s"result: $result_num x $result_mod (${dartRecognizer.imgName})")
 
     dartRecognizer.release
@@ -226,17 +234,29 @@ class BackgroundSubtractorTest {
     }
   }
 
-  def createMog: BackgroundSubtractorMOG2 = {
+  def createMog: BackgroundSubtractor = {
+//    val mog = createBackgroundSubtractorKNN()
+//    println("getHistory: " + mog.getHistory) // 500
+//    println("getNSamples: " + mog.getNSamples) // 7
+//    //mog.setNSamples(14)
+//    println("getDist2Threshold: " + mog.getDist2Threshold) // 400.0
+//    mog.setDist2Threshold(400.0)
+//    println("getkNNSamples: " + mog.getkNNSamples) // 2
+//    mog.setkNNSamples(2)
+//    println("getShadowValue: " + mog.getShadowValue) // 127
+//    println("getShadowThreshold: " + mog.getShadowThreshold) // 0.5
+
     var mog = createBackgroundSubtractorMOG2()
-    mog.setDetectShadows(true)
     println("detect shadows: " + mog.getDetectShadows())
+    mog.setDetectShadows(true)
     mog.setShadowValue(255)
-    /*
+    //mog.setHistory(100)
+    //mog.setVarThreshold(20)
     mog.setVarThreshold(128) // default: 16
     println("varThreshold: " + mog.getVarThreshold)
     mog.setComplexityReductionThreshold(0.05) // default: 0.05
     println("ComplexityReductionThreshold: " + mog.getComplexityReductionThreshold())
-    mog.setBackgroundRatio(0.9999) // default: 0.9
+    mog.setBackgroundRatio(0.5) // default: 0.9
     println("BackgroundRatio: " + mog.getBackgroundRatio)
     mog.setVarMin(4) // default: 4
     println("varMin: " + mog.getVarMin)
@@ -244,7 +264,7 @@ class BackgroundSubtractorTest {
     println("varMax: " + mog.getVarMax)
     mog.setVarThresholdGen(9) // default: 9
     println("varThresholdGen: " + mog.getVarThresholdGen)
-    */
+
     mog
   }
 
@@ -254,11 +274,6 @@ class BackgroundSubtractorTest {
 object BackgroundSubtractorTest extends App {
   var cameraAllowed = false
 
-  var i1:List[Mat] = List[Mat]()
-  var i2:List[Mat] = List[Mat]()
-  var s1:List[Int] = List[Int]()
-  var s2:List[Int] = List[Int]()
-  println("initialize i and s")
 
 
   var running = true
@@ -293,76 +308,49 @@ object BackgroundSubtractorTest extends App {
     Thread.sleep(1000)
   }
 
+  var i:Array[Mat] = Array[Mat](null, null)
+  var s:Array[Int] = Array[Int](-1, -1)
   def compareResult(img: Mat, imgName: String, camNum: Int) = synchronized {
-    //println(s"filename: ${imgName} camNum: ${camNum}")
-    if (s1 == null) {
-      i1 = List[Mat]()
-      i2 = List[Mat]()
-      s1 = List[Int]()
-      s2 = List[Int]()
+    if (i == null) {
+      i = Array(null, null)
+      s = Array(-1,-1)
     }
-    imwrite(f"${Config.OUTPUT_DIR}/${imgName}-cam-$camNum.jpg", img)
-
-
-    if (img != null) {
-      val name = imgName.substring(13).replace("-", "").replace("_", "").toInt
-      //val name = imgName.replace("-", "").replace("_", "").toInt
-      if (Math.abs(camNum) == 1) {
-        while (s2.nonEmpty && name - s2.head > 50) {
-          println(s"skipped2:  $name   >    ${s2.head}")
-          s2 = s2.tail
-          i2.head.release
-          i2 = i2.tail
-        }
-        if (s2.nonEmpty) {
-          if (Math.abs(s2.head - name) > 50) {
-            println(s"stored1:  ${name}   <    ${s2.head}")
-            s1 = s1 :+ name
-            i1 = i1 :+ img
-          } else {
-            // equals
-            //println(s"filename: ${imgName} kiirjuk")
-            val res: MatExpr = or(img, i2.head)
-            println(s"merged:  ${name}   =    ${s2.head}")
-            if (Config.SAVE_MERGE_COLORED) imwrite(f"${Config.OUTPUT_DIR}/${imgName}-XXXXXXX.jpg", res.asMat())
-            if (Config.GUI_UPDATE) GameUi.updateImage(3,new ImageIcon(CvUtil.toBufferedImage(res.asMat())))
-            i2.head.release()
-            i2 = i2.tail
-            s2 = s2.tail
-          }
-        } else {
-          s1 = s1 :+ name
-          i1 = i1 :+ img
-        }
-      } else {
-        while (s1.nonEmpty && name - s1.head > 50) {
-          println(s"skipped1:  ${s1.head}   <    ${name}")
-          s1 = s1.tail
-          i1.head.release
-          i1 = i1.tail
-        }
-        if (s1.nonEmpty) {
-          if (Math.abs(s1.head - name) > 50) {
-            println(s"stored2:  ${name}   <    ${s2.head}")
-            s2 = s2 :+ name
-            i2 = i2 :+ img
-          } else {
-            // equals
-            //println(s"filename: ${imgName} kiirjuk")
-            val res: MatExpr = or(img, i1.head)
-            println(s"merged:  ${s1.head}   =    ${name}")
-            if (Config.SAVE_MERGE_COLORED) imwrite(f"${Config.OUTPUT_DIR}/${imgName}-XXXXXXX.jpg", res.asMat())
-            if (Config.GUI_UPDATE) GameUi.updateImage(3,new ImageIcon(CvUtil.toBufferedImage(res.asMat())))
-
-            i1.head.release()
-            i1 = i1.tail
-            s1 = s1.tail
-          }
-        } else {
-          s2 = s2 :+ name
-          i2 = i2 :+ img
+    val cn = Math.abs(camNum) - 1
+    val otherCn = (cn + 1)%2
+    val name = imgName.substring(13).replace("-", "").replace("_", "").toInt
+    if (i(otherCn) == null) {
+      if (i(cn) != null) i(cn).release()
+      i(cn) = img
+      s(cn) = name
+    } else {
+      val res: MatExpr = or(img, i(otherCn))
+      var asMat: Mat = null
+      try {
+        asMat = res.asMat()
+        if (Config.SAVE_MERGE_COLORED) imwrite(f"${Config.OUTPUT_DIR}/${imgName}-XXXXXXX.jpg", asMat)
+      }catch{
+        case e: Exception => {
+          println("AS MAT EXCEPTION, WHY?")
         }
       }
+      if (Config.GUI_UPDATE) {
+        val toBufferedImage: BufferedImage = CvUtil.toBufferedImage(asMat)
+        if (toBufferedImage != null) {
+          GameUi.updateImage(2, new ImageIcon(toBufferedImage))
+        } else {
+          println(s"TO BUFFERED IMAGE NULL???? miert? ${imgName}-XXXXXXX.jpg -be kiirva")
+        }
+      }
+      i(otherCn).release()
+      i(otherCn) = null
+      img.release()
     }
   }
+  def resetResult = {
+    if (i(0) != null) i(0).release()
+    if (i(1) != null) i(1).release()
+    i(0) = null
+    i(1) = null
+  }
+
 }
