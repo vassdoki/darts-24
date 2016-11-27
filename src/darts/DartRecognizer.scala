@@ -1,5 +1,6 @@
 package darts
 
+import java.nio.ByteBuffer
 import javax.swing.ImageIcon
 
 import darts.util.{Config, CvUtil}
@@ -30,6 +31,8 @@ class DartRecognizer(pImgName: String, camNum: Int) {
   var storedOrig = new Mat
 
   val results = scala.collection.mutable.ArrayBuffer.empty[(Int, Int, Int, Int, Int)]
+  var x = 0
+  var y = 0
 
   /**
    * new image to process
@@ -57,7 +60,7 @@ class DartRecognizer(pImgName: String, camNum: Int) {
 
       medianBlur(maskOrig, maskBlured, kernelSize)
       val maskTransformed = CvUtil.transform(maskBlured, camNum)
-      val (x, y) = findTopWhite(maskTransformed)
+      val (cx, cy) = findTopWhite(maskTransformed)
       val (mod, num) = identifyNumber(new Point(x, y))
       maskBlured.release()
       maskTransformed.release()
@@ -67,6 +70,8 @@ class DartRecognizer(pImgName: String, camNum: Int) {
         matColoredResult = new Mat
         imageBlured.copyTo(matColoredResult)
         println(s"x: $x y: $y")
+        x = cx
+        y = cy
         circle(matColoredResult, new Point(x, y), 20, color, 1, 8, 0)
         CvUtil.drawTable(matColoredResult, Config.COLOR_BLUE, 1)
         CvUtil.drawNumbers(matColoredResult, Config.COLOR_BLUE)
@@ -174,6 +179,9 @@ class DartRecognizer(pImgName: String, camNum: Int) {
   def getResultImage : Mat = {
     matColoredResult
   }
+  def getResultXY: (Int, Int) = {
+    (x, y)
+  }
 
   /**
    * Return the result and free every allocated memory
@@ -216,7 +224,6 @@ class DartRecognizer(pImgName: String, camNum: Int) {
 
 
   def findTopWhite(m: Mat) : (Int, Int) = {
-    // TODO: implement it using Mat
     val i = new IplImage(m)
     val w = m.cols
     val h = m.rows
@@ -228,9 +235,9 @@ class DartRecognizer(pImgName: String, camNum: Int) {
 
       var j: Int = 0
       while (j < (h * w) - 1 && d.get(j) < 50) {
-//        if (d.get(j) > 100) {
-//          circle(m, new Point(j % w, j / w), d.get(j) -99, Config.COLOR_WHITE, 1, 8, 0)
-//        }
+        //        if (d.get(j) > 100) {f
+        //          circle(m, new Point(j % w, j / w), d.get(j) -99, Config.COLOR_WHITE, 1, 8, 0)
+        //        }
         j = j + 1
 
       }
@@ -238,6 +245,26 @@ class DartRecognizer(pImgName: String, camNum: Int) {
       i.release()
       (j % w, j / w)
     }
+//    // TODO: implement it using Mat
+//    val w = m.cols
+//    val h = m.rows
+//    if (w == 0 || h == 0) {
+//      println("valami nincs rendben")
+//      (0,0)
+//    } else {
+//      val d: ByteBuffer = m.asByteBuffer()
+//
+//
+//      var j: Int = 0
+//      while (j < (h * w) - 1 && d.get(j) <= 200) {
+//        if (d.get(j) > 10)
+//        circle(m, new Point(j % w, j / w), d.get(j) / 10, Config.COLOR_WHITE, 1, 8, 0)
+//        j = j + 1
+//
+//      }
+//      println(s"$j: w:${j%w} h:{$j/w} value:${d.get(j)}")
+//      (j % w, j / w)
+//    }
   }
 
 }

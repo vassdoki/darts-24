@@ -30,9 +30,9 @@ object Config {
   // alter processing
   val PROC_CALL_DART_RECOGNIZE = true // call DartRecognizer
   val SAVE_MOG = false // save mog mask from BackgroundSubtractor (state....)
-  val SAVE_DR_STATE = true // save DartRecognizer process visualization
+  val SAVE_DR_STATE = false // save DartRecognizer process visualization
   val GUI_UPDATE = true // call the GameUi update method
-  val SAVE_DR_COLORED = true  // save the result of the backgroundSubtractor colored
+  val SAVE_DR_COLORED = false  // save the result of the backgroundSubtractor colored
   val SAVE_MERGE_COLORED = true // save the result of the two backgroundSubtractor colored merged
 
   val CAM_FILE_SYNC_INPUT = true

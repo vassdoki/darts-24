@@ -181,7 +181,7 @@ class BackgroundSubtractorTest {
   def handleRecognizerResultAndCLose(dartRecognizer: DartRecognizer) = {
     val (result_mod, result_num) = dartRecognizer.getResult
     val image = dartRecognizer.getResultImage
-    BackgroundSubtractorTest.compareResult(image, dartRecognizer.imgName, dartRecognizer.myCamNum)
+    BackgroundSubtractorTest.compareResult(image, dartRecognizer.imgName, dartRecognizer.myCamNum, dartRecognizer.getResultXY)
     //val color: Scalar = new Scalar(250, 250, 5, 0)
     //println(s"result: $result_num x $result_mod (${dartRecognizer.imgName})")
 
@@ -193,45 +193,6 @@ class BackgroundSubtractorTest {
     runRecognizer(capture, camNum)
     println(s"camera release: $camNum")
     capture.release
-  }
-
-
-
-  def findTopWhite(i: IplImage) : (Int, Int) = {
-    val d: BytePointer = i.imageData()
-
-    var j: Int = 0
-    while((d.get(j) == 0 || d.get(j+1) == 0) && j < 960 * 720) {
-      j = j + 2
-    }
-    (j % i.width(), j / i.width())
-  }
-  def findTopWhite(i: Mat) : (Int, Int) = {
-    val d: ByteBuffer = i.asByteBuffer()
-
-    var j: Int = 0
-    while((d.get(j) == 0 || d.get(j+1) == 0) && j < 960 * 720) {
-      j = j + 2
-    }
-    (j % i.cols(), j / i.rows())
-  }
-  def identifyNumber(p: Point): Pair[Int, Int] = {
-    val degree = CvUtil.getDegreeFromBull(p)
-    val distance = CvUtil.getDistanceFromBull(p)
-    // 6-os közepe a 0 fok és óra járásával ellentétes irányba megy
-
-    val int: Int = Math.floor((degree + 9) / 18).toInt
-    val number = if (int > 19) Config.nums(0) else Config.nums(int)
-
-    val circleNumber: Int = Config.distancesFromBull filter { dfb => dfb < distance } length
-
-    circleNumber match {
-      case 0 => (2, 25)
-      case 1 => (1, 25)
-      case 3 => (3, number)
-      case 5 => (2, number)
-      case _ => (1, number)
-    }
   }
 
   def createMog: BackgroundSubtractor = {
@@ -267,14 +228,10 @@ class BackgroundSubtractorTest {
 
     mog
   }
-
-
 }
 
 object BackgroundSubtractorTest extends App {
   var cameraAllowed = false
-
-
 
   var running = true
   val fut1:Future[Int] = Future {
@@ -310,10 +267,14 @@ object BackgroundSubtractorTest extends App {
 
   var i:Array[Mat] = Array[Mat](null, null)
   var s:Array[Int] = Array[Int](-1, -1)
-  def compareResult(img: Mat, imgName: String, camNum: Int) = synchronized {
+  var xy:Array[(Int, Int)] = Array((0,0),(0,0))
+
+  def compareResult(img: Mat, imgName: String, camNum: Int, pxy: (Int, Int)) = synchronized {
+    val (x, y) = pxy
     if (i == null) {
       i = Array(null, null)
       s = Array(-1,-1)
+      xy = Array((0,0), (0,0))
     }
     val cn = Math.abs(camNum) - 1
     val otherCn = (cn + 1)%2
@@ -322,11 +283,14 @@ object BackgroundSubtractorTest extends App {
       if (i(cn) != null) i(cn).release()
       i(cn) = img
       s(cn) = name
+      xy(cn) = pxy
     } else {
       val res: MatExpr = or(img, i(otherCn))
       var asMat: Mat = null
+
       try {
         asMat = res.asMat()
+        line(asMat, new Point(x, y), new Point(xy(otherCn)._1, xy(otherCn)._2), Config.COLOR_YELLOW)
         if (Config.SAVE_MERGE_COLORED) imwrite(f"${Config.OUTPUT_DIR}/${imgName}-XXXXXXX.jpg", asMat)
       }catch{
         case e: Exception => {
