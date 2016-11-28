@@ -16,7 +16,7 @@ import ExecutionContext.Implicits.global
 import scala.util.control.Breaks._
 
 import org.bytedeco.javacpp.{BytePointer, Pointer}
-import org.bytedeco.javacpp.indexer.UByteBufferIndexer
+import org.bytedeco.javacpp.indexer.{IntRawIndexer, UByteBufferIndexer}
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacpp.opencv_imgproc._
 import org.bytedeco.javacpp.opencv_imgcodecs._
@@ -67,10 +67,10 @@ class BackgroundSubtractorTest {
     try {
       while (BackgroundSubtractorTest.cameraAllowed) {
         imageMat = camera.captureFrame
-        var toBufferedImage: BufferedImage = CvUtil.toBufferedImage(imageMat)
-        if (toBufferedImage != null) {
-          if (Config.GUI_UPDATE && Math.abs(camNum) == 1) GameUi.updateImage(3, new ImageIcon(toBufferedImage))
-        }
+//        var toBufferedImage: BufferedImage = CvUtil.toBufferedImage(imageMat)
+//        if (toBufferedImage != null) {
+//          if (Config.GUI_UPDATE && Math.abs(camNum) == 1) GameUi.updateImage(3, new ImageIcon(toBufferedImage))
+//        }
 
         while (imageMat == null || imageMat.rows != 720 || imageMat.cols != 1280) {
           println(s"Error reading the camera ($camNum)")
@@ -291,6 +291,41 @@ object BackgroundSubtractorTest extends App {
       try {
         asMat = res.asMat()
         line(asMat, new Point(x, y), new Point(xy(otherCn)._1, xy(otherCn)._2), Config.COLOR_YELLOW)
+        val averagePoint: Point = new Point((x + xy(otherCn)._1) / 2, (y + xy(otherCn)._2) / 2)
+
+
+
+
+//        var lines = new Mat
+//        var gray = new Mat
+//        cvtColor(asMat, gray, CV_RGB2GRAY)
+//        val deltaRho: Double = 2
+//        val deltaTheta: Double = CV_PI / 180
+//        val minVotes: Int = 10
+//        val minLength: Double = 10
+//        val minGap: Double = 5d
+//        HoughLinesP(gray, lines, deltaRho, deltaTheta, minVotes, minLength, minGap)
+//        val indexer = lines.createIndexer().asInstanceOf[IntRawIndexer]
+//        for (i <- 0 until lines.rows()) {
+//          val pt1 = new Point(indexer.get(i, 0, 0), indexer.get(i, 0, 1))
+//          val pt2 = new Point(indexer.get(i, 0, 2), indexer.get(i, 0, 3))
+//
+//          // draw the segment on the image
+//          line(asMat, pt1, pt2, Config.COLOR_WHITE, 1, LINE_AA, 0)
+//        }
+
+
+
+
+        circle(asMat, averagePoint, 10, Config.COLOR_YELLOW, 1, 8, 0)
+        val (mod, num) = DartsUtil.identifyNumber(averagePoint)
+        putText(asMat, f"$num (X $mod)", new Point(800, 150),
+          FONT_HERSHEY_PLAIN, // font type
+          5, // font scale
+          Config.COLOR_YELLOW, // text color (here white)
+          3, // text thickness
+          8, // Line type.
+          false)
         if (Config.SAVE_MERGE_COLORED) imwrite(f"${Config.OUTPUT_DIR}/${imgName}-XXXXXXX.jpg", asMat)
       }catch{
         case e: Exception => {

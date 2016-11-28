@@ -14,6 +14,7 @@ trait CaptureTrait {
   def lastFilename: String
   var imageNumber: Int
   var skipNext: Int
+  var lastOrigFilename: String
 }
 
 object CaptureTrait {

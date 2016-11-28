@@ -16,6 +16,8 @@ class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
   var skipNext: Int = -1 // no use of it here
   val capture: VideoCapture = new VideoCapture(videoDeviceNumber)
   var imageNumber = 0
+  var lastFilename: String = null
+  var lastOrigFilename: String = null
 
   val rate = capture.get(CAP_PROP_FPS)
   println(s"Default (${videoDeviceNumber}) Frame rate: " + rate + "fps width: " + capture.get(CAP_PROP_FRAME_WIDTH).toInt + " height: " + capture.get(CAP_PROP_FRAME_HEIGHT).toInt)
@@ -28,13 +30,11 @@ class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
   val height      = capture.get(CAP_PROP_FRAME_HEIGHT).toInt
 
   def captureFrame: Mat = {
+    lastOrigFilename = s"d${Math.abs(videoDeviceNumber)}-${Config.timeFormatter.print(DateTime.now)}"
+    lastFilename = s"${Config.timeFormatter.print(DateTime.now)}"
     capture.read(frame)
     imageNumber += 1
     frame
-  }
-
-  def lastFilename: String = {
-    s"${Config.timeFormatter.print(DateTime.now)}"
   }
 
   def release = {

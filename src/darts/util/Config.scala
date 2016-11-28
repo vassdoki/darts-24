@@ -22,7 +22,7 @@ class Config {
 
 }
 object Config {
-  val CAMERA_DEV_NUM = 1
+  val CAMERA_DEV_NUM = 2
   val SAVE_CAPTURED = false
   val INPUT_DIR = "/home/vassdoki/darts/v2/test"
   val OUTPUT_DIR = "/home/vassdoki/darts/v2/d"

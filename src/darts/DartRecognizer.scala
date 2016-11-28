@@ -3,7 +3,7 @@ package darts
 import java.nio.ByteBuffer
 import javax.swing.ImageIcon
 
-import darts.util.{Config, CvUtil}
+import darts.util.{DartsUtil, Config, CvUtil}
 import darts.util.CvUtil._
 import org.bytedeco.javacpp.{opencv_imgproc, opencv_features2d, BytePointer}
 import org.bytedeco.javacpp.opencv_core._
@@ -31,6 +31,7 @@ class DartRecognizer(pImgName: String, camNum: Int) {
   var storedOrig = new Mat
 
   val results = scala.collection.mutable.ArrayBuffer.empty[(Int, Int, Int, Int, Int)]
+  var result:(Int, Int) = (0,0)
   var x = 0
   var y = 0
 
@@ -61,7 +62,8 @@ class DartRecognizer(pImgName: String, camNum: Int) {
       medianBlur(maskOrig, maskBlured, kernelSize)
       val maskTransformed = CvUtil.transform(maskBlured, camNum)
       val (cx, cy) = findTopWhite(maskTransformed)
-      val (mod, num) = identifyNumber(new Point(x, y))
+      val (mod, num) = DartsUtil.identifyNumber(new Point(x, y))
+      results += Tuple5(0, mod, num, x, y)
       maskBlured.release()
       maskTransformed.release()
 
@@ -72,13 +74,14 @@ class DartRecognizer(pImgName: String, camNum: Int) {
         println(s"x: $x y: $y")
         x = cx
         y = cy
+        result = (num, mod)
         circle(matColoredResult, new Point(x, y), 20, color, 1, 8, 0)
         CvUtil.drawTable(matColoredResult, Config.COLOR_BLUE, 1)
         CvUtil.drawNumbers(matColoredResult, Config.COLOR_BLUE)
         putText(matColoredResult, f"Result: $num (X $mod)     [cam: $camNum]", new Point(30, 20 * Math.abs(camNum)),
           FONT_HERSHEY_PLAIN, // font type
           1, // font scale
-          Config.COLOR_YELLOW, // text color (here white)
+          color, // text color (here white)
           3, // text thickness
           8, // Line type.
           false)
@@ -163,7 +166,6 @@ class DartRecognizer(pImgName: String, camNum: Int) {
       Thread.`yield`()
 
       //transformedOrig.release()
-      results += Tuple5(0, mod, num, x, y)
       //println(s"end image $imageCount (cam: $camNum)")
       maskColoredTransformed
     }catch {
@@ -188,13 +190,14 @@ class DartRecognizer(pImgName: String, camNum: Int) {
    * @return (mod, num): mod: 1, 2(double), 3(triple), num: the number hit
    */
   def getResult: Tuple2[Int, Int] = {
-    if (results.isEmpty) {
-      (0,0)
-    } else {
-      val res = results.reduceLeft((a, b) => if (a._1 < b._1) a else b)
-      //println("result: results.size: " + results.size + " mod: " + res._2 + " num: " + res._3)
-      (res._2, res._3)
-    }
+    (result._1, result._2)
+//    if (results.isEmpty) {
+//      (0,0)
+//    } else {
+//      val res = results.reduceLeft((a, b) => if (a._1 < b._1) a else b)
+//      //println("result: results.size: " + results.size + " mod: " + res._2 + " num: " + res._3)
+//      (res._2, res._3)
+//    }
   }
 
   def release = {
@@ -202,26 +205,6 @@ class DartRecognizer(pImgName: String, camNum: Int) {
     //images.foreach(i => i.release())
     storedOrig.release()
   }
-
-  def identifyNumber(p: Point): Pair[Int, Int] = {
-    val degree = CvUtil.getDegreeFromBull(p)
-    val distance = CvUtil.getDistanceFromBull(p)
-    // 6-os közepe a 0 fok és óra járásával ellentétes irányba megy
-
-    val int: Int = Math.floor((degree + 9) / 18).toInt
-    val number = if (int > 19) Config.nums(0) else Config.nums(int)
-
-    val circleNumber: Int = Config.distancesFromBull filter { dfb => dfb < distance } length
-
-    circleNumber match {
-      case 0 => (2, 25)
-      case 1 => (1, 25)
-      case 3 => (3, number)
-      case 5 => (2, number)
-      case _ => (1, number)
-    }
-  }
-
 
   def findTopWhite(m: Mat) : (Int, Int) = {
     val i = new IplImage(m)
