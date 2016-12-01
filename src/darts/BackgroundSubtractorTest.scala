@@ -1,27 +1,25 @@
 package darts
 
 import java.awt.image.BufferedImage
-import java.io.{PrintWriter, File}
+import java.io.{File, PrintWriter}
 import java.nio.ByteBuffer
 import java.time.LocalTime
 import javax.swing.ImageIcon
 
+import darts.cmd.Blue
 import darts.util._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
 import scala.concurrent.{ExecutionContext, Future}
 import ExecutionContext.Implicits.global
-
 import scala.util.control.Breaks._
-
 import org.bytedeco.javacpp.{BytePointer, Pointer}
 import org.bytedeco.javacpp.indexer.{IntRawIndexer, UByteBufferIndexer}
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacpp.opencv_imgproc._
 import org.bytedeco.javacpp.opencv_imgcodecs._
 import org.bytedeco.javacpp.opencv_video._
-
 import org.joda.time
 
 
@@ -143,6 +141,7 @@ class BackgroundSubtractorTest {
             //if (countZero >= MIN_NONE_ZERO && countZero <= MAX_NONE_ZERO)
             if (countZero >= 500)
             imwrite(f"${Config.OUTPUT_DIR}/${camera.lastFilename}-cam:$camNum-zero:$countZero%06d-state:$state.jpg", mask);
+            //Blue.t(mask, s"${camera.lastFilename}-cam:$camNum-zero:$countZero%06d-state:$state")
           }
           if (Config.GUI_UPDATE) {
             // && Math.abs(camNum) == 2
@@ -237,7 +236,7 @@ object BackgroundSubtractorTest extends App {
   val fut1:Future[Int] = Future {
     val bs = new BackgroundSubtractorTest
     cameraAllowed = true
-    val camera = CaptureTrait.get(-1)
+    val camera = CaptureTrait.get(1)
     val res = bs.runRecognizer(camera, 1)
     camera.release
     res
@@ -245,7 +244,7 @@ object BackgroundSubtractorTest extends App {
   val fut2: Future[Int] = Future {
     val bs = new BackgroundSubtractorTest
     cameraAllowed = true
-    val camera = CaptureTrait.get(-2)
+    val camera = CaptureTrait.get(2)
     val res = bs.runRecognizer(camera, 2)
     camera.release
     res
@@ -268,6 +267,51 @@ object BackgroundSubtractorTest extends App {
   var i:Array[Mat] = Array[Mat](null, null)
   var s:Array[Int] = Array[Int](-1, -1)
   var xy:Array[(Int, Int)] = Array((0,0),(0,0))
+
+  /**
+   * If hands are visible, then flush previous result.
+   * This handles the case, when only one camera did detect a dart
+   */
+  def flushResult = synchronized {
+    if (i(0) != null || i(1) != null) {
+      val (cn, otherCn) = if (i(0) != null) {
+        (0, 1)
+      } else {
+        (1, 0)
+      }
+      val (x, y) = xy(cn)
+
+      var asMat = i(cn)
+
+      try {
+
+        circle(asMat, new Point(x, y), 10, Config.COLOR_YELLOW, 1, 8, 0)
+        val (mod, num) = DartsUtil.identifyNumber(new Point(x, y))
+        putText(asMat, f"$num (X $mod) [one cam]", new Point(800, 150),
+          FONT_HERSHEY_PLAIN, // font type
+          5, // font scale
+          Config.COLOR_YELLOW, // text color (here white)
+          3, // text thickness
+          8, // Line type.
+          false)
+        if (Config.SAVE_MERGE_COLORED) imwrite(f"${Config.OUTPUT_DIR}/${s(cn)}-XXXXXXX.jpg", asMat)
+      } catch {
+        case e: Exception => {
+          println("AS MAT EXCEPTION, WHY?")
+        }
+      }
+      if (Config.GUI_UPDATE) {
+        val toBufferedImage: BufferedImage = CvUtil.toBufferedImage(asMat)
+        if (toBufferedImage != null) {
+          GameUi.updateImage(2, new ImageIcon(toBufferedImage))
+        } else {
+          println(s"TO BUFFERED IMAGE NULL???? miert? ${s(cn)}-XXXXXXX.jpg -be kiirva")
+        }
+      }
+      i(cn).release()
+      i(cn) = null
+    }
+  }
 
   def compareResult(img: Mat, imgName: String, camNum: Int, pxy: (Int, Int)) = synchronized {
     val (x, y) = pxy
@@ -294,8 +338,6 @@ object BackgroundSubtractorTest extends App {
         val averagePoint: Point = new Point((x + xy(otherCn)._1) / 2, (y + xy(otherCn)._2) / 2)
 
 
-
-
 //        var lines = new Mat
 //        var gray = new Mat
 //        cvtColor(asMat, gray, CV_RGB2GRAY)
@@ -313,8 +355,6 @@ object BackgroundSubtractorTest extends App {
 //          // draw the segment on the image
 //          line(asMat, pt1, pt2, Config.COLOR_WHITE, 1, LINE_AA, 0)
 //        }
-
-
 
 
         circle(asMat, averagePoint, 10, Config.COLOR_YELLOW, 1, 8, 0)
