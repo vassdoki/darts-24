@@ -3,9 +3,10 @@ package darts
 import java.nio.ByteBuffer
 import javax.swing.ImageIcon
 
-import darts.util.{DartsUtil, Config, CvUtil}
+import darts.util.{Config, CvUtil, DartsUtil}
 import darts.util.CvUtil._
-import org.bytedeco.javacpp.{opencv_imgproc, opencv_features2d, BytePointer}
+import org.bytedeco.javacpp.indexer.{UByteBufferIndexer, UByteRawIndexer}
+import org.bytedeco.javacpp.{BytePointer, opencv_features2d, opencv_imgproc}
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacpp.opencv_imgcodecs._
 import org.bytedeco.javacpp.opencv_imgproc._
@@ -14,6 +15,7 @@ import org.bytedeco.javacpp.opencv_features2d._
 import org.joda.time.DateTime
 
 import scala.collection.parallel.mutable
+import scala.swing.Dimension
 
 /**
  * Created by vassdoki on 2016.08.12..
@@ -23,74 +25,96 @@ class DartRecognizer(pImgName: String, camNum: Int) {
   val imgName = pImgName
   var imageCount = 0
 
-  var maskColoredTransformed: Mat = null
   var matColoredResult: Mat = null
-
-  var imageBlured = new Mat
-  //val images = scala.collection.mutable.ListBuffer.empty[Mat]
   var storedOrig = new Mat
+
+  var savedStates: List[(String, Mat)] = Nil
 
   val results = scala.collection.mutable.ArrayBuffer.empty[(Int, Int, Int, Int, Int)]
   var result:(Int, Int) = (0,0)
   var x = 0
   var y = 0
 
+
+  def findXY(maskOrig: Mat, kernelSize: Int, rect: Rect): (Int, Int) = {
+    val part = new Mat
+    medianBlur(maskOrig, part, kernelSize)
+    val partTransformed = CvUtil.transform(part, camNum)
+    if (rect.x + rect.width > partTransformed.cols) {
+      rect.width(partTransformed.cols - rect.x)
+    }
+    if (rect.y + rect.height > partTransformed.rows) {
+      rect.height(partTransformed.rows - rect.y)
+    }
+    if (rect.x < 0) rect.x(0)
+    if (rect.y < 0) rect.y(0)
+
+    val (x, y) = findTopWhite(partTransformed(rect), rect.x, rect.y)
+
+//    cvtColor(partTransformed, partTransformed, CV_GRAY2RGB)
+//    circle(partTransformed, new Point(x, y), 20, Config.COLOR_GREEN, 3, 8, 0)
+//    rectangle(partTransformed,rect, Config.COLOR_YELLOW)
+//    imwrite(s"${Config.OUTPUT_DIR}/${pImgName}-$imageCount-kernel:$kernelSize-x:$x-y:$y.jpg", partTransformed)
+    part.release()
+    partTransformed.release()
+    (x,y)
+  }
+
   /**
    * new image to process
    * @param imageMat
    */
-  def newImage(imageMat: Mat, maskOrig: Mat, camNum2: Int): Mat = {
+  def newImage(imageMat: Mat, maskOrig: Mat, camNum2: Int) = {
     imageCount += 1
     //println(s"new image $imageCount (cam: $camNum)")
 
     try {
-      val transformedOrig = CvUtil.transform(imageMat, camNum)
-      //imwrite(f"${Config.OUTPUT_DIR}/${imgName}-b-$imageCount%04d-cam$camNum.jpg", transformedOrig)
+//      val maskBlured = new Mat
+//      val kernelSize = 5
+//      medianBlur(maskOrig, maskBlured, kernelSize)
+//      val maskTransformed = CvUtil.transform(maskBlured, camNum)
+//      val (cx, cy) = findTopWhite(maskTransformed, 0, 0)
+//      imwrite(s"${Config.OUTPUT_DIR}/${pImgName}-kernel:$kernelSize-x:$cx-y:$cy-orig.jpg", maskTransformed)
 
-      val color = if (Math.abs(camNum) == 1) Config.COLOR_GREEN else Config.COLOR_RED
-      val maskBlue = new Mat(maskOrig.size(), CV_8UC3, color)
-
-      val matBlack = new Mat(maskOrig.size(), CV_8UC3, Config.COLOR_BLACK)
-      maskBlue.copyTo(matBlack, maskOrig)
-      maskBlue.release()
-
-      maskColoredTransformed = CvUtil.transform(matBlack, camNum)
-      val kernelSize = 5
-      medianBlur(maskColoredTransformed, imageBlured, kernelSize)
-      val maskBlured = new Mat
-
-      medianBlur(maskOrig, maskBlured, kernelSize)
-      val maskTransformed = CvUtil.transform(maskBlured, camNum)
-      val (cx, cy) = findTopWhite(maskTransformed)
-      val (mod, num) = DartsUtil.identifyNumber(new Point(x, y))
+      val (x1, y1) = findXY(maskOrig, 17, new Rect(0,0,maskOrig.cols, maskOrig.rows))
+      val rectOfInterest = new Rect(x1 - 260, y1 - 130, 520, 140)
+      //val rectOfInterest = new Rect(x1 - 5, y1 - 5, 10, 10)
+      val (x2, y2) = findXY(maskOrig, 5, rectOfInterest)
+      val (mod, num) = DartsUtil.identifyNumber(new Point(x2, y2))
       results += Tuple5(0, mod, num, x, y)
-      maskBlured.release()
-      maskTransformed.release()
 
-      if (imageCount <= 4) {
+      // if cy < y then the dart was moving on the prev image
+      if (imageCount == 1 || y2 < y) {
+        // save the last result
         if (matColoredResult != null) matColoredResult.release
-        matColoredResult = new Mat
-        imageBlured.copyTo(matColoredResult)
-        println(s"x: $x y: $y")
-        x = cx
-        y = cy
+        val color = if (Math.abs(camNum) == 1) Config.COLOR_GREEN else Config.COLOR_RED
+        matColoredResult = CvUtil.transform(maskOrig, camNum)
+        cvtColor(matColoredResult, matColoredResult, COLOR_GRAY2BGR)
+        matColoredResult = and(matColoredResult, color).asMat
+        //println(s"x: $x y: $y")
+        x = x2
+        y = y2
         result = (num, mod)
-        circle(matColoredResult, new Point(x, y), 20, color, 1, 8, 0)
-        CvUtil.drawTable(matColoredResult, Config.COLOR_BLUE, 1)
-        CvUtil.drawNumbers(matColoredResult, Config.COLOR_BLUE)
-        putText(matColoredResult, f"Result: $num (X $mod)     [cam: $camNum]", new Point(30, 20 * Math.abs(camNum)),
-          FONT_HERSHEY_PLAIN, // font type
-          1, // font scale
-          color, // text color (here white)
-          3, // text thickness
-          8, // Line type.
-          false)
       }
+      // TODO: az első nem mozgó képet dolgozzuk csak fel, de úgy, hogy a durva blur helyett csak egy 5-öset rakjunk
+      // rá, de csak azon a környéken, ahol a durva mog alapján az x,y van.
+      // TODO: a kamera oldalától függően jobb felső vagy bal felső pontot kell keresni
+      // TODO: findTopWhite módosítása, hogy opencv adja vissza a fehérek vektorát
+
       if (Config.SAVE_DR_COLORED) {
-        imwrite(f"${Config.OUTPUT_DIR}/${imgName.replace(s"d${camNum}-", "")}-${camNum}.jpg", imageBlured)
+        imwrite(f"${Config.OUTPUT_DIR}/${imgName.replace(s"d${camNum}-", "")}-${camNum}.jpg", matColoredResult)
       }
 
       if (Config.SAVE_DR_STATE) {
+        val transformedOrig = CvUtil.transform(imageMat, camNum)
+
+        val color = if (Math.abs(camNum) == 1) Config.COLOR_GREEN else Config.COLOR_RED
+        //val maskBlue = new Mat(maskOrig.size(), CV_8UC3, color)
+
+        var origColored = maskOrig.clone
+        cvtColor(origColored, origColored, CV_GRAY2RGB)
+        origColored = and(origColored, color).asMat
+
         val w = imageMat.size().width()
         val h = imageMat.size().height()
         val outMat = new Mat(imageMat.size(), imageMat.`type`())
@@ -100,74 +124,51 @@ class DartRecognizer(pImgName: String, camNum: Int) {
         resize(transformedOrig, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
         resized.copyTo(outMat(new Rect(0, 0, w / 2, h / 2)))
         // IMG 2
-        //cvtColor(matBlack, matBlack, CV_GRAY2RGB)
-        //CvUtil.drawTable(mask, Config.COLOR_YELLOW, 1)
-        circle(matBlack, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
-        resize(matBlack, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
+        resize(origColored, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
         resized.copyTo(outMat(new Rect(w / 2, 0, w / 2, h / 2)))
         // IMG 3
         //cvtColor(imageBlured, imageBlured, CV_GRAY2RGB)
+        val imageBlured = CvUtil.transform(maskOrig, camNum)
+        cvtColor(imageBlured, imageBlured, CV_GRAY2RGB)
         CvUtil.drawTable(imageBlured, Config.COLOR_YELLOW, 1)
         CvUtil.drawNumbers(imageBlured, Config.COLOR_YELLOW)
-        circle(imageBlured, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
+        circle(imageBlured, new Point(x1, y1), 20, Config.COLOR_RED, 3, 8, 0)
+        circle(imageBlured, new Point(x2, y2), 20, Config.COLOR_GREEN, 3, 8, 0)
         resize(imageBlured, resized, resized.size(), 0.5, 0.5, INTER_CUBIC)
         resized.copyTo(outMat(new Rect(0, h / 2, w / 2, h / 2)))
         // IMG 4
         if (x > 50 && y > 50 && x + 51 < w && y + 51 < h) {
-          val hit = matBlack(new Rect(x - 50, y - 50, 101, 101))
+          val hit = imageBlured(new Rect(x - 50, y - 50, 101, 101))
           resize(hit, resized, resized.size(), 2, 2, INTER_CUBIC)
           resized.copyTo(outMat(new Rect(w / 2, h / 2, w / 2, h / 2)))
         }
 
-        putText(outMat, f"Number: $num (modifier: $mod)", new Point(w / 2 + 50, 30),
+        putText(outMat, f"Number: $num (modifier: $mod) c:$imageCount", new Point(w / 2 + 50, 30),
           FONT_HERSHEY_PLAIN, // font type
           2, // font scale
           Config.COLOR_YELLOW, // text color (here white)
           3, // text thickness
           8, // Line type.
           false)
+        putText(outMat, f"Number: ${result._1} (modifier: ${result._2})", new Point(w / 2 + 50, 50),
+          FONT_HERSHEY_PLAIN, // font type
+          2, // font scale
+          Config.COLOR_WHITE, // text color (here white)
+          3, // text thickness
+          8, // Line type.
+          false)
 
-        //imwrite(f"${Config.OUTPUT_DIR}/${imgName}-a-$imageCount%04d-zero:$nonZero%06d-num:$num% 2d-mod:$mod% 2d.jpg", mask)
-        imwrite(f"${Config.OUTPUT_DIR}/${imgName.replace(s"d${camNum}-", "")}-${camNum}-$imageCount%04d-num:$num% 2d-mod:$mod% 2d.jpg", outMat)
+        //imwrite(f"${Config.OUTPUT_DIR}/${imgName.replace(s"d${camNum}-", "")}-${camNum}-$imageCount%04d-num:$num% 2d-mod:$mod% 2d.jpg", outMat)
+        savedStates = savedStates :+ (s"${imgName.replace(s"d${camNum}-", "")}-${camNum}-$imageCount%04d-num:$num% 2d-mod:$mod% 2d.jpg", outMat)
 
-        outMat.release()
         resized.release()
+        imageBlured.release()
+        transformedOrig.release()
+        origColored.release()
       }
 
-//      if (Config.GUI_UPDATE) {
-//        val w = imageMat.size().width()
-//        val h = imageMat.size().height()
-//        val outMat = new Mat(imageMat.size(), imageMat.`type`())
-//        // IMG 1
-//        CvUtil.drawTable(transformedOrig, Config.COLOR_YELLOW, 1)
-//        CvUtil.drawNumbers(transformedOrig, Config.COLOR_YELLOW)
-//        circle(transformedOrig, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
-//
-//        putText(transformedOrig, f"File${imgName} cam: $camNum", new Point(20, 20),
-//          FONT_HERSHEY_PLAIN, // font type
-//          2, // font scale
-//          Config.COLOR_RED, // text color (here white)
-//          3, // text thickness
-//          8, // Line type.
-//          false)
-//        putText(transformedOrig, f"Number: $num (modifier: $mod)", new Point(20, 40),
-//          FONT_HERSHEY_PLAIN, // font type
-//          2, // font scale
-//          Config.COLOR_RED, // text color (here white)
-//          3, // text thickness
-//          8, // Line type.
-//          false)
-//
-//        resize(transformedOrig, outMat, outMat.size(), 0.5, 0.5, INTER_CUBIC)
-//
-//        GameUi.updateImage(Math.abs(camNum) - 1, new ImageIcon(CvUtil.toBufferedImage(outMat)))
-//        outMat.release()
-//      }
+      //maskTransformed.release()
       Thread.`yield`()
-
-      //transformedOrig.release()
-      //println(s"end image $imageCount (cam: $camNum)")
-      maskColoredTransformed
     }catch {
       case e: Exception => {
         println("EXCEPTION in new image")
@@ -179,6 +180,9 @@ class DartRecognizer(pImgName: String, camNum: Int) {
   }
 
   def getResultImage : Mat = {
+    if (Config.SAVE_DR_STATE) {
+      savedStates.foreach((x: (String, Mat)) => imwrite(s"${Config.OUTPUT_DIR}/${x._1}", x._2) )
+    }
     matColoredResult
   }
   def getResultXY: (Int, Int) = {
@@ -201,15 +205,54 @@ class DartRecognizer(pImgName: String, camNum: Int) {
   }
 
   def release = {
-    imageBlured.release()
+    //imageBlured.release()
     //images.foreach(i => i.release())
     storedOrig.release()
+    savedStates.foreach((x: (String, Mat)) => x._2.release() )
   }
 
-  def findTopWhite(m: Mat) : (Int, Int) = {
+  def findTopWhite(m: Mat, xOffset: Int, yOffset: Int): (Int, Int) = {
+    val sI: UByteRawIndexer = m.createIndexer()
+    var j = 0
+    val w = m.cols
+    val h = m.rows
+    var x = 0
+    var y = 0
+    var color = 0
+    var resJ = 0
+
+    //val debug = new Mat(m.rows, m.cols,CV_8UC3)
+
+    while(y < h  && x < w && resJ == 0) { //  && color < 50
+      color = sI.get(y, x, 0) & 0xFF
+      if (resJ == 0 && color > 100) {
+        resJ = j
+      }
+//      if (color == 0) {
+//        circle(debug, new Point(x, y), 1, Config.COLOR_BLUE, 1, 8, 0)
+//      } else {
+//        if (color < 100) {
+//          circle(debug, new Point(x, y), 1, Config.COLOR_RED, 1, 8, 0)
+//        } else {
+//          circle(debug, new Point(x, y), 1, Config.COLOR_YELLOW, 1, 8, 0)
+//        }
+//      }
+      j += 1
+      x = j % w
+      y = j / w
+    }
+
+    //imwrite(s"${Config.OUTPUT_DIR}/${pImgName}-$imageCount-box-a-source-$xOffset-$w-$h.jpg", m)
+    //imwrite(s"${Config.OUTPUT_DIR}/${pImgName}-$imageCount-box-b.jpg-$xOffset-$w-$h.jpg", debug)
+
+    (resJ % w + xOffset, resJ / w + yOffset)
+
+  }
+  def findTopWhiteOld(m: Mat, xOffset: Int, yOffset: Int) : (Int, Int) = {
     val i = new IplImage(m)
     val w = m.cols
     val h = m.rows
+    val debug = new Mat(m.rows, m.cols,CV_8UC3)
     if (w == 0 || h == 0) {
       println("valami nincs rendben")
       (0,0)
@@ -217,16 +260,37 @@ class DartRecognizer(pImgName: String, camNum: Int) {
       val d: BytePointer = i.imageData()
 
       var j: Int = 0
-      while (j < (h * w) - 1 && d.get(j) < 50) {
-        //        if (d.get(j) > 100) {f
-        //          circle(m, new Point(j % w, j / w), d.get(j) -99, Config.COLOR_WHITE, 1, 8, 0)
-        //        }
-        j = j + 1
+      var resJ = 0
+      while (j < (h * w) - 1 && (resJ == 0 || xOffset > 0)) {
+        val byte: Int = d.get(j) & 0xFF
+        if (byte > 200 && resJ == 0) {
+          resJ = j
+        }
+        if (byte > 50) {
+                  circle(m, new Point(j % w, j / w), byte/10, Config.COLOR_WHITE, 1, 8, 0)
+        }
+        if (xOffset > 0) {
+          if (byte == 0) {
+            circle(debug, new Point(j % w, j / w), 1, Config.COLOR_BLUE, 1, 8, 0)
+          } else {
+            if (byte < 200) {
+              circle(debug, new Point(j % w, j / w), 1, Config.COLOR_RED, 1, 8, 0)
+            } else {
+              circle(debug, new Point(j % w, j / w), 1, Config.COLOR_YELLOW, 1, 8, 0)
+            }
+          }
+        }
 
+        j = j + 1
       }
-      //println(s"$j: w:${j%w} h:{$j/w} value:${d.get(j)}")
+      if (xOffset > 0) {
+        imwrite(s"${Config.OUTPUT_DIR}/${pImgName}-$imageCount-box-a-source.jpg", m)
+        imwrite(s"${Config.OUTPUT_DIR}/${pImgName}-$imageCount-box-b.jpg", debug)
+      }
+      debug.release()
+      println(s"$j: w:${j%w} h:{$j/w} value:${d.get(resJ)}")
       i.release()
-      (j % w, j / w)
+      (resJ % w + xOffset, resJ / w + yOffset)
     }
 //    // TODO: implement it using Mat
 //    val w = m.cols

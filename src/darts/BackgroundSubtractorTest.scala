@@ -35,6 +35,9 @@ class BackgroundSubtractorTest {
   val MIN_NONE_ZERO = 2000 // if below, then the table is empty
   val MAX_NONE_ZERO = 40000 // if above, then hands are visible
 
+  val MOG_LEARNING_RATE = 0.2
+  val MAX_IMAGE_COUNT = 2 // depends on the mog settings
+
   /*
   0: default state
   1: there was a change that needs to be recognized on the following images
@@ -42,6 +45,7 @@ class BackgroundSubtractorTest {
   n: hands on the image, darts are being taken out (? usable state?)
    */
   var state: Int = 0
+  var prevState = state
   var imgCount = 0;
 
   //var maxOutputNumber = 9999999
@@ -60,7 +64,7 @@ class BackgroundSubtractorTest {
     prevImageMat = camera.captureFrame
     mog.apply(prevImageMat, mask, 1)
     imageMat = camera.captureFrame
-    mog.apply(imageMat, mask, 0.1)
+    mog.apply(imageMat, mask, MOG_LEARNING_RATE)
     CvUtil.releaseMat(imageMat)
     try {
       while (BackgroundSubtractorTest.cameraAllowed) {
@@ -74,13 +78,12 @@ class BackgroundSubtractorTest {
           println(s"Error reading the camera ($camNum)")
           imageMat = camera.captureFrame
         }
-        imgCount += 1
         // save captured image
         if (Config.SAVE_CAPTURED) {
           imwrite(f"${Config.OUTPUT_DIR}/d${Math.abs(camNum)}-${Config.timeFormatter.print(DateTime.now)}.jpg", imageMat)
         }
 
-        mog.apply(imageMat, mask, 0.1)
+        mog.apply(imageMat, mask, MOG_LEARNING_RATE)
         if (mask == null) {
           println("mask is null")
         } else {
@@ -98,8 +101,8 @@ class BackgroundSubtractorTest {
               if (countZero < MAX_NONE_ZERO) {
                 if (Config.PROC_CALL_DART_RECOGNIZE) {
                   dartRecognizer = startNewRecognizer(camera.lastFilename, camNum)
-                  val resultMask = dartRecognizer.newImage(imageMat, mask, camNum)
-                  //BackgroundSubtractorTest.compareResult(resultMask, camera.lastFilename, camNum)
+                  dartRecognizer.newImage(imageMat, mask, camNum)
+                  imgCount = 0
                 }
                 state = 1
               } else {
@@ -114,11 +117,19 @@ class BackgroundSubtractorTest {
               }
               state = 2
             }
+            case (1, z) if z >= MIN_NONE_ZERO && z < MAX_NONE_ZERO && imgCount > MAX_IMAGE_COUNT => {
+              // the change is small, but takes too much time, it is hands state
+              if (Config.PROC_CALL_DART_RECOGNIZE) {
+                dartRecognizer.release
+              }
+              state = 2
+            }
+
             case (1, z) if z >= MIN_NONE_ZERO && z < MAX_NONE_ZERO => {
               // recognizer active, and mog still reports change
+              imgCount += 1
               if (Config.PROC_CALL_DART_RECOGNIZE) {
-                val resultMask = dartRecognizer.newImage(imageMat, mask, camNum)
-                //BackgroundSubtractorTest.compareResult(resultMask, camera.lastFilename, camNum)
+                dartRecognizer.newImage(imageMat, mask, camNum)
               }
             }
             case (1, z) if z <= MIN_NONE_ZERO => {
@@ -126,6 +137,7 @@ class BackgroundSubtractorTest {
               if (Config.PROC_CALL_DART_RECOGNIZE) {
                 handleRecognizerResultAndCLose(dartRecognizer)
               }
+              imgCount = 0
               state = 0
             }
             case (2, z) if z <= MIN_NONE_ZERO => {
@@ -137,10 +149,10 @@ class BackgroundSubtractorTest {
             }
           }
           //println(f"file: ${camera.lastFilename} zero: $countZero state: $state)")
-          if (Config.SAVE_MOG) {
+          if (Config.SAVE_MOG && state == 1) {
             //if (countZero >= MIN_NONE_ZERO && countZero <= MAX_NONE_ZERO)
             if (countZero >= 500)
-            imwrite(f"${Config.OUTPUT_DIR}/${camera.lastFilename}-cam:$camNum-zero:$countZero%06d-state:$state.jpg", mask);
+            imwrite(f"${Config.OUTPUT_DIR}/${camera.lastFilename}-cam:$camNum-zero:$countZero%06d-state:$state-count:$imgCount.jpg", mask);
             //Blue.t(mask, s"${camera.lastFilename}-cam:$camNum-zero:$countZero%06d-state:$state")
           }
           if (Config.GUI_UPDATE) {
@@ -161,6 +173,7 @@ class BackgroundSubtractorTest {
           }
         }
 
+        prevState = state
         CvUtil.releaseMat(prevImageMat)
         prevImageMat = imageMat
       }
@@ -210,7 +223,8 @@ class BackgroundSubtractorTest {
     println("detect shadows: " + mog.getDetectShadows())
     mog.setDetectShadows(true)
     mog.setShadowValue(255)
-    //mog.setHistory(100)
+    println("History size: " + mog.getHistory)
+    mog.setHistory(200)
     //mog.setVarThreshold(20)
     mog.setVarThreshold(128) // default: 16
     println("varThreshold: " + mog.getVarThreshold)
@@ -294,6 +308,8 @@ object BackgroundSubtractorTest extends App {
           3, // text thickness
           8, // Line type.
           false)
+        CvUtil.drawTable(asMat, Config.COLOR_BLUE, 1)
+        CvUtil.drawNumbers(asMat, Config.COLOR_BLUE)
         if (Config.SAVE_MERGE_COLORED) imwrite(f"${Config.OUTPUT_DIR}/${s(cn)}-XXXXXXX.jpg", asMat)
       } catch {
         case e: Exception => {
@@ -359,6 +375,8 @@ object BackgroundSubtractorTest extends App {
 
         circle(asMat, averagePoint, 10, Config.COLOR_YELLOW, 1, 8, 0)
         val (mod, num) = DartsUtil.identifyNumber(averagePoint)
+        CvUtil.drawTable(asMat, Config.COLOR_BLUE, 1)
+        CvUtil.drawNumbers(asMat, Config.COLOR_BLUE)
         putText(asMat, f"$num (X $mod)", new Point(800, 150),
           FONT_HERSHEY_PLAIN, // font type
           5, // font scale
@@ -386,10 +404,12 @@ object BackgroundSubtractorTest extends App {
     }
   }
   def resetResult = {
-    if (i(0) != null) i(0).release()
-    if (i(1) != null) i(1).release()
-    i(0) = null
-    i(1) = null
+    if (i != null) {
+      if (i(0) != null) i(0).release()
+      if (i(1) != null) i(1).release()
+      i(0) = null
+      i(1) = null
+    }
   }
 
 }

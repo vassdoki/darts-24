@@ -53,4 +53,10 @@ object Blue extends App {
     }
   }
 
+  def blue(m: Mat) = {
+    val re = and(m, new Scalar(255, 0, 0, 0))
+    imwrite(f"${Config.OUTPUT_DIR}/a.jpg", re.asMat())
+
+  }
+
 }
