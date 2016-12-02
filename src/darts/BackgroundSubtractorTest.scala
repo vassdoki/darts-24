@@ -280,7 +280,7 @@ object BackgroundSubtractorTest extends App {
 
   var i:Array[Mat] = Array[Mat](null, null)
   var s:Array[Int] = Array[Int](-1, -1)
-  var xy:Array[(Int, Int)] = Array((0,0),(0,0))
+  var xy:Array[(Int, Int, Int)] = Array((0,0,0),(0,0,0))
 
   /**
    * If hands are visible, then flush previous result.
@@ -293,7 +293,7 @@ object BackgroundSubtractorTest extends App {
       } else {
         (1, 0)
       }
-      val (x, y) = xy(cn)
+      val (x, y, countNoise) = xy(cn)
 
       var asMat = i(cn)
 
@@ -329,12 +329,12 @@ object BackgroundSubtractorTest extends App {
     }
   }
 
-  def compareResult(img: Mat, imgName: String, camNum: Int, pxy: (Int, Int)) = synchronized {
-    val (x, y) = pxy
+  def compareResult(img: Mat, imgName: String, camNum: Int, pxy: (Int, Int, Int)) = synchronized {
+    val (x, y, countNoise) = pxy
     if (i == null) {
       i = Array(null, null)
       s = Array(-1,-1)
-      xy = Array((0,0), (0,0))
+      xy = Array((0,0,0), (0,0,0))
     }
     val cn = Math.abs(camNum) - 1
     val otherCn = (cn + 1)%2
@@ -350,33 +350,34 @@ object BackgroundSubtractorTest extends App {
 
       try {
         asMat = res.asMat()
-        line(asMat, new Point(x, y), new Point(xy(otherCn)._1, xy(otherCn)._2), Config.COLOR_YELLOW)
-        val averagePoint: Point = new Point((x + xy(otherCn)._1) / 2, (y + xy(otherCn)._2) / 2)
+        val otherX = xy(otherCn)._1
+        val otherY = xy(otherCn)._2
+        val otherNoise = xy(otherCn)._3
+        val point = new Point(x, y)
+        val otherPoint = new Point(otherX, otherY)
+        line(asMat, point, otherPoint, Config.COLOR_YELLOW)
+        val averagePoint: Point = new Point((x + otherX) / 2, (y + otherY) / 2)
 
-
-//        var lines = new Mat
-//        var gray = new Mat
-//        cvtColor(asMat, gray, CV_RGB2GRAY)
-//        val deltaRho: Double = 2
-//        val deltaTheta: Double = CV_PI / 180
-//        val minVotes: Int = 10
-//        val minLength: Double = 10
-//        val minGap: Double = 5d
-//        HoughLinesP(gray, lines, deltaRho, deltaTheta, minVotes, minLength, minGap)
-//        val indexer = lines.createIndexer().asInstanceOf[IntRawIndexer]
-//        for (i <- 0 until lines.rows()) {
-//          val pt1 = new Point(indexer.get(i, 0, 0), indexer.get(i, 0, 1))
-//          val pt2 = new Point(indexer.get(i, 0, 2), indexer.get(i, 0, 3))
-//
-//          // draw the segment on the image
-//          line(asMat, pt1, pt2, Config.COLOR_WHITE, 1, LINE_AA, 0)
-//        }
-
-
+        circle(asMat, point, 10, Config.COLOR_GREEN, 1, 8, 0)
+        circle(asMat, otherPoint, 10, Config.COLOR_RED, 1, 8, 0)
         circle(asMat, averagePoint, 10, Config.COLOR_YELLOW, 1, 8, 0)
-        val (mod, num) = DartsUtil.identifyNumber(averagePoint)
         CvUtil.drawTable(asMat, Config.COLOR_BLUE, 1)
         CvUtil.drawNumbers(asMat, Config.COLOR_BLUE)
+
+        val (mod, num) = if (CvUtil.getDistance(point, otherPoint) > 60) {
+          // the x,y from the two cameras are too far away
+          // take only the one from the less noisy image
+          if (countNoise > otherNoise && otherPoint.x > 0 && otherPoint.y > 0) {
+            circle(asMat, otherPoint, 5, Config.COLOR_BLUE, 2, 8, 0)
+            DartsUtil.identifyNumber(otherPoint)
+          } else {
+            circle(asMat, point, 5, Config.COLOR_BLUE, 2, 8, 0)
+            DartsUtil.identifyNumber(point)
+          }
+        } else {
+          DartsUtil.identifyNumber(averagePoint)
+        }
+
         putText(asMat, f"$num (X $mod)", new Point(800, 150),
           FONT_HERSHEY_PLAIN, // font type
           5, // font scale
@@ -388,6 +389,7 @@ object BackgroundSubtractorTest extends App {
       }catch{
         case e: Exception => {
           println("AS MAT EXCEPTION, WHY?")
+          e.printStackTrace
         }
       }
       if (Config.GUI_UPDATE) {

@@ -122,6 +122,9 @@ object CvUtil {
   def getDistanceFromBull(p: Point): Double =  synchronized {
     Math.sqrt(sq(Config.bull.x - p.x) + sq(Config.bull.y - p.y))
   }
+  def getDistance(p: Point, p2: Point): Double =  synchronized {
+    Math.sqrt(sq(p2.x - p.x) + sq(p2.y - p.y))
+  }
 
 
   def getDegreeFromBull(p: Point) = getDegree(new Point(Config.bull.x, Config.bull.y), p)

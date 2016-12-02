@@ -34,6 +34,7 @@ class DartRecognizer(pImgName: String, camNum: Int) {
   var result:(Int, Int) = (0,0)
   var x = 0
   var y = 0
+  var countNoise = 0
 
 
   def findXY(maskOrig: Mat, kernelSize: Int, rect: Rect): (Int, Int) = {
@@ -94,12 +95,13 @@ class DartRecognizer(pImgName: String, camNum: Int) {
         //println(s"x: $x y: $y")
         x = x2
         y = y2
+        countNoise = countNonZero(maskOrig)
         result = (num, mod)
       }
-      // TODO: az első nem mozgó képet dolgozzuk csak fel, de úgy, hogy a durva blur helyett csak egy 5-öset rakjunk
-      // rá, de csak azon a környéken, ahol a durva mog alapján az x,y van.
       // TODO: a kamera oldalától függően jobb felső vagy bal felső pontot kell keresni
-      // TODO: findTopWhite módosítása, hogy opencv adja vissza a fehérek vektorát
+      // TODO: ha messze van a két eredmény, akkor a kevésbé zajos képet használjuk
+      // TODO: ha túl zajos az 5-ös blur, akkor esetleg legyen nagyobb?
+      // TODO: egyenes vonal meghatározás? és azon keresni a végét a dart-nak?
 
       if (Config.SAVE_DR_COLORED) {
         imwrite(f"${Config.OUTPUT_DIR}/${imgName.replace(s"d${camNum}-", "")}-${camNum}.jpg", matColoredResult)
@@ -185,8 +187,8 @@ class DartRecognizer(pImgName: String, camNum: Int) {
     }
     matColoredResult
   }
-  def getResultXY: (Int, Int) = {
-    (x, y)
+  def getResultXY: (Int, Int, Int) = {
+    (x, y, countNoise)
   }
 
   /**
