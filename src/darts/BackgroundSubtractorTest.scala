@@ -202,7 +202,7 @@ class BackgroundSubtractorTest {
 
   def continousCameraUpdate(camNum: Int) = {
     val capture = CaptureTrait.get(camNum)
-    runRecognizer(capture, camNum)
+    runRecognizer(capture, Math.abs(camNum))
     println(s"camera release: $camNum")
     capture.release
   }

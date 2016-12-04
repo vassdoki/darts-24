@@ -26,14 +26,16 @@ object Config {
   val SAVE_CAPTURED = false
   val INPUT_DIR = "/home/vassdoki/darts/v2/test"
   val OUTPUT_DIR = "/home/vassdoki/darts/v2/d"
+  val CAM_WIDTH = 1280
+  val CAM_HEIGHT = 720
 
   // alter processing
-  val PROC_CALL_DART_RECOGNIZE = true // call DartRecognizer
-  val SAVE_MOG = false // save mog mask from BackgroundSubtractor (state....)
+  val PROC_CALL_DART_RECOGNIZE = false // call DartRecognizer
+  val SAVE_MOG = true // save mog mask from BackgroundSubtractor (state....)
   val SAVE_DR_STATE = true // save DartRecognizer process visualization
   val GUI_UPDATE = true // call the GameUi update method
   val SAVE_DR_COLORED = false  // save the result of the backgroundSubtractor colored
-  val SAVE_MERGE_COLORED = true // save the result of the two backgroundSubtractor colored merged
+  val SAVE_MERGE_COLORED = false // save the result of the two backgroundSubtractor colored merged
 
   val CAM_FILE_SYNC_INPUT = true
 
@@ -44,7 +46,7 @@ object Config {
   val COLOR_WHITE: Scalar = new Scalar(255, 255, 255, 0)
   val COLOR_BLACK: Scalar = new Scalar(0, 0, 0, 0)
 
-  val timeFormatter = DateTimeFormat.forPattern("Y-MMM-d_H-m_ss-SS");
+  val timeFormatter = DateTimeFormat.forPattern("Y-MMM-d_H-mm_ss-SS");
 
   val MAT_black = new Mat(1,1,CV_16SC1, 0)
 

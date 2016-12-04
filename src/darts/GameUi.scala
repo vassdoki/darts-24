@@ -1,30 +1,30 @@
 package darts
 
-import java.awt.{Color, Checkbox}
+import java.awt.{Checkbox, Color}
 import java.awt.Cursor._
-import java.awt.image.{DataBufferByte, BufferedImage}
+import java.awt.image.{BufferedImage, DataBufferByte}
 import java.io.File
-import javax.swing.{SwingUtilities, ImageIcon}
+import javax.swing.{ImageIcon, SwingUtilities}
 
 import darts.BackgroundSubtractorTest
 import darts.util._
-import org.bytedeco.javacpp.opencv_core.{Scalar, IplImage, Mat}
+import org.bytedeco.javacpp.opencv_core.{IplImage, Mat, Scalar}
 import org.bytedeco.javacv.Java2DFrameConverter
 import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
 import org.bytedeco.javacpp.opencv_imgcodecs._
-
 
 import scala.swing.SimpleSwingApplication
 import scala.swing._
 import scala.swing.event._
 import java.awt.event._
+
+import darts.processor.StateHandler
+
 import scala.concurrent.{ExecutionContext, Future}
 import ExecutionContext.Implicits.global
 import scala.swing.FileChooser.Result.Approve
 import scala.swing.Dialog.Message.Error
-
-
-import scala.swing.event.{ButtonClicked, WindowClosing, MouseReleased}
+import scala.swing.event.{ButtonClicked, MouseReleased, WindowClosing}
 
 /**
  * Created by vassdoki on 2016.08.11..
@@ -32,8 +32,8 @@ import scala.swing.event.{ButtonClicked, WindowClosing, MouseReleased}
 object GameUi extends  SimpleSwingApplication{
 
   var guiCreated = false
-  val backgroundSubtractorTest1 = new BackgroundSubtractorTest
-  val backgroundSubtractorTest2 = new BackgroundSubtractorTest
+  val stateHandler1 = new StateHandler
+  val stateHandler2 = new StateHandler
 
   val cameraCheckbox = new CheckBox("Use Camera")
   val imageViews: List[Label] = List.fill(4) {
@@ -98,20 +98,38 @@ object GameUi extends  SimpleSwingApplication{
     if (cameraCheckbox.selected) {
       // start the camera
       println("start the camera")
-      BackgroundSubtractorTest.cameraAllowed = true
+      StateHandler.cameraAllowed = true
       val fut1 = Future{
         println("1 varunk")
         Thread.sleep(1000)
         println("1 mehet")
-        backgroundSubtractorTest1.continousCameraUpdate(-1)
+        stateHandler1.continousCameraUpdate(-1)
       }
       val fut2 = Future{
-        backgroundSubtractorTest2.continousCameraUpdate(-2)
+        stateHandler2.continousCameraUpdate(-2)
       }
     } else {
       BackgroundSubtractorTest.cameraAllowed = false
     }
   }
+//  def setCameraState = {
+//    if (cameraCheckbox.selected) {
+//      // start the camera
+//      println("start the camera")
+//      BackgroundSubtractorTest.cameraAllowed = true
+//      val fut1 = Future{
+//        println("1 varunk")
+//        Thread.sleep(1000)
+//        println("1 mehet")
+//        backgroundSubtractorTest1.continousCameraUpdate(-1)
+//      }
+//      val fut2 = Future{
+//        backgroundSubtractorTest2.continousCameraUpdate(-2)
+//      }
+//    } else {
+//      BackgroundSubtractorTest.cameraAllowed = false
+//    }
+//  }
 
 
   def updateImage(imgNum: Int, imageIcon: ImageIcon) = {
