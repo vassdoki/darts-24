@@ -27,7 +27,7 @@ object CvUtil {
 
     var mat = new Mat(3, 3, CV_64F)
     mat = getPerspectiveTransform(srcMat, dstMat)
-    val i2 = new Mat(image.size, image.`type`())
+    val i2 = new Mat(860, 820, image.`type`())
     warpPerspective(image, i2, mat, i2.size())
     mat.release()
     i2
