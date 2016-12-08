@@ -1,6 +1,9 @@
 package darts.data
 
-import darts.util.Config
+import javax.swing.ImageIcon
+
+import darts.GameUi
+import darts.util.{Config, CvUtil}
 import org.bytedeco.javacpp.opencv_core.Mat
 import org.bytedeco.javacpp.opencv_imgcodecs.imwrite
 
@@ -8,7 +11,7 @@ import org.bytedeco.javacpp.opencv_imgcodecs.imwrite
   * Created by vassdoki on 2016.12.03..
   * List of observations that are sequentian and are in the same state
   */
-class ObservationList(camNum: Int) {
+class ObservationList(val camNum: Int) {
   /**
     * States:
     * 0: empty table
@@ -21,8 +24,12 @@ class ObservationList(camNum: Int) {
 
   def add(orig: Mat, filename:String, camNum:Int, mogMask:Mat, mogMaskNonZero: Int) = {
     if (needsMore) {
+      GameUi.updateImage(camNum - 1, new ImageIcon(CvUtil.toBufferedImage(orig)))
+
       list = list :+ new Observation(orig, filename, camNum, mogMask, mogMaskNonZero)
     }else {
+      CvUtil.releaseMat(orig)
+      CvUtil.releaseMat(mogMask)
       addEmpty
     }
   }
@@ -47,7 +54,7 @@ class ObservationList(camNum: Int) {
     * Decide the observation list state by the length of the movement
     * @return
     */
-  def getState: Int = {
+  def setState: Int = {
     list.size match{
       case i if i <= 2 => state = 0
       case i if i == 3 => state = 1
@@ -62,7 +69,7 @@ class ObservationList(camNum: Int) {
   }
 
 
-  def reset = {
+  def release = {
     list.foreach((o: Observation) => o.release)
     list = List()
     state = 0

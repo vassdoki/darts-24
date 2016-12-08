@@ -29,11 +29,15 @@ object Config {
   val CAM_WIDTH = 1280
   val CAM_HEIGHT = 720
 
+  // debug
+  val DEBUG_BLURER = false
+  val GUI_UPDATE = true // call the GameUi update method
+  val RUN_MERGER = false
+
   // alter processing
   val PROC_CALL_DART_RECOGNIZE = false // call DartRecognizer
-  val SAVE_MOG = true // save mog mask from BackgroundSubtractor (state....)
-  val SAVE_DR_STATE = true // save DartRecognizer process visualization
-  val GUI_UPDATE = true // call the GameUi update method
+  val SAVE_MOG = false // save mog mask from BackgroundSubtractor (state....)
+  val SAVE_DR_STATE = false // save DartRecognizer process visualization
   val SAVE_DR_COLORED = false  // save the result of the backgroundSubtractor colored
   val SAVE_MERGE_COLORED = false // save the result of the two backgroundSubtractor colored merged
 

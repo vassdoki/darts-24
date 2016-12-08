@@ -2,7 +2,8 @@ package darts.cmd
 
 import java.io.File
 
-import darts.processor.Merger
+import darts.data.Observation
+import darts.processor.{Blurer, Merger}
 import darts.util.Config
 import org.bytedeco.javacpp.opencv_imgcodecs.imread
 
@@ -25,18 +26,24 @@ object MergeTest extends App {
     val filename = f.getName.substring(0,23)
 
     if (state == 1) {
-      println(s"state: $state cam: $cam num: $num")
-      val cn = cam - 1
-      val otherCn = (cn + 1) % 2
-
-      if (files(otherCn) != null) {
-        files(cn) = f
-        Merger.merge(imread(files(0).getAbsolutePath), imread(files(1).getAbsolutePath), filename)
-        files(0) = null
-        files(1) = null
-      } else {
-        files(cn) = f
-      }
+      val o = new Observation(null, filename, cam, imread(f.getAbsolutePath), -1)
+      Blurer.blurUntilClear(o)
+      o.release
     }
+
+//    if (state == 1) {
+//      println(s"state: $state cam: $cam num: $num")
+//      val cn = cam - 1
+//      val otherCn = (cn + 1) % 2
+
+//      if (files(otherCn) != null) {
+//        files(cn) = f
+//        Merger.merge(imread(files(0).getAbsolutePath), imread(files(1).getAbsolutePath), filename)
+//        files(0) = null
+//        files(1) = null
+//      } else {
+//        files(cn) = f
+//      }
+//    }
   })
 }

@@ -38,7 +38,6 @@ class StateHandler {
     val mog = createMog
     var imageMat: Mat = null
     var mask: Mat = new Mat()
-    var obsList = new ObservationList(camNum)
 
     // warm up the mog
     for(i <- 1 to 5) {
@@ -46,6 +45,7 @@ class StateHandler {
       mog.apply(imageMat, mask, MOG_LEARNING_RATE)
     }
     try {
+      var obsList = new ObservationList(camNum)
       while (StateHandler.cameraAllowed) {
         imageMat = camera.captureFrame
 
@@ -79,12 +79,32 @@ class StateHandler {
             }
             case (1, z) if z <= MIN_NONE_ZERO => {
               // no more change reported by the mog
-              handleObservations(obsList)
-              obsList.reset
+              //handleObservations(obsList)
+              obsList.setState
+              //println(s"State change: state: ${obsList.state} imgCount: ${obsList.list.size} camera: $camNum --------------------------------")
+              if (Config.RUN_MERGER) {
+                Merger.merge(obsList)
+              } else {
+                obsList.release
+              }
+              obsList = new ObservationList(camNum)
               state = 0
             }
           }
         }
+        if (Config.GUI_UPDATE) { //  && state > 0
+          val transformed = CvUtil.transform(imageMat, 1)
+          //imwrite(f"${Config.OUTPUT_DIR}/${camera.lastFilename}-cam:$camNum-state:$state-transformed.jpg", transformed);
+          val toBufferedImage: BufferedImage = CvUtil.toBufferedImage(transformed)
+          transformed.release
+
+          if (toBufferedImage != null && camNum == 1) {
+            GameUi.updateImage(2, new ImageIcon(toBufferedImage))
+          } else {
+            //println(s"TO BUFFERED IMAGE NULL???? miert? ${camera.lastFilename}-XXXXXXX.jpg -be kiirva")
+          }
+        }
+
         CvUtil.releaseMat(imageMat)
       }
     }catch {
@@ -96,7 +116,7 @@ class StateHandler {
   }
 
   def handleObservations(obsList: ObservationList) = {
-    val state = obsList.getState
+    val state = obsList.setState
     obsList.debugPrintMask
   }
 

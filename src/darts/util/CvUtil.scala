@@ -2,7 +2,7 @@ package darts.util
 
 import java.awt.image.BufferedImage
 
-import org.bytedeco.javacpp.indexer.FloatIndexer
+import org.bytedeco.javacpp.indexer.{FloatIndexer, UByteRawIndexer}
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacpp.opencv_imgproc._
 import org.bytedeco.javacv.Java2DFrameConverter
@@ -125,6 +125,9 @@ object CvUtil {
   def getDistance(p: Point, p2: Point): Double =  synchronized {
     Math.sqrt(sq(p2.x - p.x) + sq(p2.y - p.y))
   }
+  def getDistance(x1:Int, y1: Int, x2:Int, y2: Int): Double =  synchronized {
+    Math.sqrt(sq(x2 - x1) + sq(y2 - y1))
+  }
 
 
   def getDegreeFromBull(p: Point) = getDegree(new Point(Config.bull.x, Config.bull.y), p)
@@ -159,5 +162,44 @@ object CvUtil {
       m.release()
     }
   }
+
+  def findTopWhite(m: Mat, xOffset: Int, yOffset: Int): (Int, Int) = {
+    val sI: UByteRawIndexer = m.createIndexer()
+    var j = 0
+    val w = m.cols
+    val h = m.rows
+    var x = 0
+    var y = 0
+    var color = 0
+    var resJ = 0
+
+    //val debug = new Mat(m.rows, m.cols,CV_8UC3)
+
+    while(y < h  && x < w && resJ == 0) { //  && color < 50
+      color = sI.get(y, x, 0) & 0xFF
+      if (resJ == 0 && color > 100) {
+        resJ = j
+      }
+      //      if (color == 0) {
+      //        circle(debug, new Point(x, y), 1, Config.COLOR_BLUE, 1, 8, 0)
+      //      } else {
+      //        if (color < 100) {
+      //          circle(debug, new Point(x, y), 1, Config.COLOR_RED, 1, 8, 0)
+      //        } else {
+      //          circle(debug, new Point(x, y), 1, Config.COLOR_YELLOW, 1, 8, 0)
+      //        }
+      //      }
+      j += 1
+      x = j % w
+      y = j / w
+    }
+
+    //imwrite(s"${Config.OUTPUT_DIR}/${pImgName}-$imageCount-box-a-source-$xOffset-$w-$h.jpg", m)
+    //imwrite(s"${Config.OUTPUT_DIR}/${pImgName}-$imageCount-box-b.jpg-$xOffset-$w-$h.jpg", debug)
+
+    (resJ % w + xOffset, resJ / w + yOffset)
+
+  }
+
 
 }

@@ -132,7 +132,7 @@ object GameUi extends  SimpleSwingApplication{
 //  }
 
 
-  def updateImage(imgNum: Int, imageIcon: ImageIcon) = {
+  def updateImage(imgNum: Int, imageIcon: ImageIcon) = synchronized {
     if (guiCreated) {
       val fut = Future {
         Swing.onEDT {
