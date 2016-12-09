@@ -1,29 +1,17 @@
 package darts
 
-import java.awt.{Checkbox, Color}
-import java.awt.Cursor._
-import java.awt.image.{BufferedImage, DataBufferByte}
 import java.io.File
 import javax.swing.{ImageIcon, SwingUtilities}
 
-import darts.BackgroundSubtractorTest
-import darts.util._
 import org.bytedeco.javacpp.opencv_core.{IplImage, Mat, Scalar}
-import org.bytedeco.javacv.Java2DFrameConverter
-import org.bytedeco.javacv.OpenCVFrameConverter.ToMat
-import org.bytedeco.javacpp.opencv_imgcodecs._
 
 import scala.swing.SimpleSwingApplication
 import scala.swing._
-import scala.swing.event._
-import java.awt.event._
 
 import darts.processor.StateHandler
 
 import scala.concurrent.{ExecutionContext, Future}
 import ExecutionContext.Implicits.global
-import scala.swing.FileChooser.Result.Approve
-import scala.swing.Dialog.Message.Error
 import scala.swing.event.{ButtonClicked, MouseReleased, WindowClosing}
 
 /**
@@ -86,7 +74,7 @@ object GameUi extends  SimpleSwingApplication{
 
     override def closeOperation(): Unit = {
       //darts.CaptureTest.releaseCamera()
-      BackgroundSubtractorTest.cameraAllowed = false
+      StateHandler.cameraAllowed = false
       Thread.sleep(50)
       println("Closing applicatoin")
       top.close()
@@ -109,7 +97,6 @@ object GameUi extends  SimpleSwingApplication{
         stateHandler2.continousCameraUpdate(-2)
       }
     } else {
-      BackgroundSubtractorTest.cameraAllowed = false
       StateHandler.cameraAllowed = false
     }
   }

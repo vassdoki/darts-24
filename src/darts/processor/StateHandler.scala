@@ -4,7 +4,7 @@ import java.awt.image.BufferedImage
 import javax.swing.ImageIcon
 
 import darts.data.{Observation, ObservationList}
-import darts.{DartRecognizer, GameUi}
+import darts.GameUi
 import darts.util.{CaptureTrait, Config, CvUtil}
 import org.bytedeco.javacpp.opencv_core.{FONT_HERSHEY_PLAIN, Mat, Point, countNonZero}
 import org.bytedeco.javacpp.opencv_imgcodecs.imwrite
@@ -96,11 +96,11 @@ class StateHandler {
         if (Config.GUI_UPDATE) { //  && state > 0
           val transformed = CvUtil.transform(imageMat, camNum)
           //imwrite(f"${Config.OUTPUT_DIR}/${camera.lastFilename}-cam:$camNum-state:$state-transformed.jpg", transformed);
-          val toBufferedImage: BufferedImage = CvUtil.toBufferedImage(transformed)
+          val toBufferedImage: BufferedImage = CvUtil.toBufferedImage(mask)
           transformed.release
 
-          if (toBufferedImage != null) { //  && camNum == 1
-            GameUi.updateImage(camNum % 2, new ImageIcon(toBufferedImage))
+          if (toBufferedImage != null && camNum == 1) { //  && camNum == 1
+            GameUi.updateImage(2, new ImageIcon(toBufferedImage))
           } else {
             //println(s"TO BUFFERED IMAGE NULL???? miert? ${camera.lastFilename}-XXXXXXX.jpg -be kiirva")
           }

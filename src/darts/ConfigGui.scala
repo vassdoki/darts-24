@@ -1,6 +1,5 @@
 package darts
 
-import java.awt.{Color, Checkbox}
 import java.awt.Cursor._
 import java.awt.image.{DataBufferByte, BufferedImage}
 import java.io.File
@@ -16,7 +15,6 @@ import org.bytedeco.javacpp.opencv_imgcodecs._
 import scala.swing.SimpleSwingApplication
 import scala.swing._
 import scala.swing.event._
-import java.awt.event._
 import scala.concurrent.{ExecutionContext, Future}
 import ExecutionContext.Implicits.global
 import scala.swing.FileChooser.Result.Approve

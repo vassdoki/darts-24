@@ -51,7 +51,7 @@ object Merger {
 
   def mergeObservationLists(o1: ObservationList, o2: ObservationList) = {
     // change the order if necessary
-    if (o1.camNum == 0) {
+    if (o1.camNum == 1) {
       mergeObservationListsOrdered(o1, o2)
     } else {
       mergeObservationListsOrdered(o2, o1)
@@ -117,19 +117,20 @@ object Merger {
       val i1 = CvUtil.transform(o1.list.head.mogMask, o1.camNum)
       cvtColor(i1, i1, COLOR_GRAY2BGR)
       val or1 = and(i1, Config.COLOR_GREEN).asMat
-      //val orig1 = CvUtil.transform(o1.list.head.mogMask, 1)
+      val orig1 = CvUtil.transform(o1.list.head.orig, 1)
       //imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod-orig1.jpg", orig1)
-      //GameUi.updateImage(1, new ImageIcon(CvUtil.toBufferedImage(orig1)))
+      GameUi.updateImage(1, new ImageIcon(CvUtil.toBufferedImage(orig1)))
 
 
       val i2 = CvUtil.transform(o2.list.head.mogMask, o2.camNum)
       cvtColor(i2, i2, COLOR_GRAY2BGR)
       val or2 = and(i2, Config.COLOR_RED).asMat
-      //val orig2 = CvUtil.transform(o2.list.head.orig, 2)
+      val orig2 = CvUtil.transform(o2.list.head.orig, 2)
       //imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod-orig2.jpg", orig2)
-      //GameUi.updateImage(0, new ImageIcon(CvUtil.toBufferedImage(orig2)))
+      GameUi.updateImage(0, new ImageIcon(CvUtil.toBufferedImage(orig2)))
 
       val image = or(or1, or2).asMat
+      //GameUi.updateImage(2, new ImageIcon(CvUtil.toBufferedImage(image)))
 
       CvUtil.drawTable(image, Config.COLOR_YELLOW, 1)
       CvUtil.drawNumbers(image, Config.COLOR_YELLOW)
@@ -158,8 +159,8 @@ object Merger {
       image.release
       i1.release()
       i2.release()
-      //orig1.release()
-      //orig2.release()
+      orig1.release()
+      orig2.release()
       or1.release
       or2.release
     }

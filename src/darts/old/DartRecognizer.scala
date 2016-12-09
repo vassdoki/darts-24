@@ -1,21 +1,10 @@
-package darts
-
-import java.nio.ByteBuffer
-import javax.swing.ImageIcon
+package darts.old
 
 import darts.util.{Config, CvUtil, DartsUtil}
-import darts.util.CvUtil._
-import org.bytedeco.javacpp.indexer.{UByteBufferIndexer, UByteRawIndexer}
-import org.bytedeco.javacpp.{BytePointer, opencv_features2d, opencv_imgproc}
+import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacpp.opencv_imgcodecs._
 import org.bytedeco.javacpp.opencv_imgproc._
-import org.bytedeco.javacpp.opencv_video._
-import org.bytedeco.javacpp.opencv_features2d._
-import org.joda.time.DateTime
-
-import scala.collection.parallel.mutable
-import scala.swing.Dimension
 
 /**
  * Created by vassdoki on 2016.08.12..
