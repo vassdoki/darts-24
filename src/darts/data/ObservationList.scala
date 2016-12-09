@@ -24,7 +24,7 @@ class ObservationList(val camNum: Int) {
 
   def add(orig: Mat, filename:String, camNum:Int, mogMask:Mat, mogMaskNonZero: Int) = {
     if (needsMore) {
-      GameUi.updateImage(camNum - 1, new ImageIcon(CvUtil.toBufferedImage(orig)))
+      //GameUi.updateImage(camNum - 1, new ImageIcon(CvUtil.toBufferedImage(orig)))
 
       list = list :+ new Observation(orig, filename, camNum, mogMask, mogMaskNonZero)
     }else {

@@ -86,7 +86,7 @@ object Merger {
 
     o.release
   }
-  def mergeObservationListsOrdered(o1: ObservationList, o2: ObservationList) = {
+  def mergeObservationListsOrdered(o1: ObservationList, o2: ObservationList) =  synchronized {
     Blurer.blurUntilClear(o1.list.head)
     var (kernel1, x1, y1) = o1.list.head.blurs.head
     val (mod1, num1) = DartsUtil.identifyNumber(new Point(x1, y1))
@@ -116,14 +116,20 @@ object Merger {
 
       val i1 = CvUtil.transform(o1.list.head.mogMask, o1.camNum)
       cvtColor(i1, i1, COLOR_GRAY2BGR)
+      val or1 = and(i1, Config.COLOR_GREEN).asMat
+      //val orig1 = CvUtil.transform(o1.list.head.mogMask, 1)
+      //imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod-orig1.jpg", orig1)
+      //GameUi.updateImage(1, new ImageIcon(CvUtil.toBufferedImage(orig1)))
+
+
       val i2 = CvUtil.transform(o2.list.head.mogMask, o2.camNum)
       cvtColor(i2, i2, COLOR_GRAY2BGR)
-
-      val or1 = and(i1, Config.COLOR_GREEN).asMat
       val or2 = and(i2, Config.COLOR_RED).asMat
+      //val orig2 = CvUtil.transform(o2.list.head.orig, 2)
+      //imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod-orig2.jpg", orig2)
+      //GameUi.updateImage(0, new ImageIcon(CvUtil.toBufferedImage(orig2)))
+
       val image = or(or1, or2).asMat
-      or1.release
-      or2.release
 
       CvUtil.drawTable(image, Config.COLOR_YELLOW, 1)
       CvUtil.drawNumbers(image, Config.COLOR_YELLOW)
@@ -148,18 +154,14 @@ object Merger {
       GameUi.updateImage(3, new ImageIcon(CvUtil.toBufferedImage(image)))
       imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod.jpg", image)
 
-      val orig2 = CvUtil.transform(o2.list.head.orig, 2)
-      imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod-orig2.jpg", orig2)
-      GameUi.updateImage(0, new ImageIcon(CvUtil.toBufferedImage(orig2)))
-      val orig1 = CvUtil.transform(o1.list.head.orig, 1)
-      imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod-orig1.jpg", orig1)
-      GameUi.updateImage(1, new ImageIcon(CvUtil.toBufferedImage(orig1)))
 
       image.release
       i1.release()
       i2.release()
-      orig1.release()
-      orig2.release()
+      //orig1.release()
+      //orig2.release()
+      or1.release
+      or2.release
     }
     o1.release
     o2.release

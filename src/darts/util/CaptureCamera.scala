@@ -37,6 +37,14 @@ class CaptureCamera(videoDeviceNumber: Int) extends CaptureTrait{
     frame
   }
 
+  def captureFrame(f: Mat): Mat = {
+    lastOrigFilename = s"d${Math.abs(videoDeviceNumber)}-${Config.timeFormatter.print(DateTime.now)}"
+    lastFilename = s"${Config.timeFormatter.print(DateTime.now)}"
+    capture.read(f)
+    imageNumber += 1
+    f
+  }
+
   def release = {
     capture.release()
   }

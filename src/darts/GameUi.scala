@@ -110,6 +110,7 @@ object GameUi extends  SimpleSwingApplication{
       }
     } else {
       BackgroundSubtractorTest.cameraAllowed = false
+      StateHandler.cameraAllowed = false
     }
   }
 //  def setCameraState = {
@@ -134,7 +135,7 @@ object GameUi extends  SimpleSwingApplication{
 
   def updateImage(imgNum: Int, imageIcon: ImageIcon) = synchronized {
     if (guiCreated) {
-      val fut = Future {
+      //val fut = Future {
         Swing.onEDT {
           //println(s"future updateImage start imgNum: $imgNum")
           imageViews(Math.abs(imgNum)).icon = imageIcon
@@ -142,7 +143,7 @@ object GameUi extends  SimpleSwingApplication{
           fpsLabel.text = f"C: $imgCount"
         }
       }
-    }
+    //}
   }
 
 

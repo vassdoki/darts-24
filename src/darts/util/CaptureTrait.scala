@@ -9,6 +9,7 @@ import org.bytedeco.javacpp.opencv_core.Mat
  */
 trait CaptureTrait {
   def captureFrame: Mat
+  def captureFrame(f: Mat): Mat
   def release
   def getSelf: Any
   def lastFilename: String

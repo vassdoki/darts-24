@@ -41,17 +41,18 @@ class StateHandler {
 
     // warm up the mog
     for(i <- 1 to 5) {
-      imageMat = camera.captureFrame
+      imageMat = camera.captureFrame(imageMat)
       mog.apply(imageMat, mask, MOG_LEARNING_RATE)
+      imageMat.release
     }
     try {
       var obsList = new ObservationList(camNum)
       while (StateHandler.cameraAllowed) {
-        imageMat = camera.captureFrame
+        imageMat = camera.captureFrame(imageMat)
 
         while (imageMat == null || imageMat.rows != Config.CAM_HEIGHT || imageMat.cols != Config.CAM_WIDTH) {
           println(s"Error reading the camera ($camNum)")
-          imageMat = camera.captureFrame
+          imageMat = camera.captureFrame(imageMat)
         }
         // save captured image
         if (Config.SAVE_CAPTURED) {
@@ -93,13 +94,13 @@ class StateHandler {
           }
         }
         if (Config.GUI_UPDATE) { //  && state > 0
-          val transformed = CvUtil.transform(imageMat, 1)
+          val transformed = CvUtil.transform(imageMat, camNum)
           //imwrite(f"${Config.OUTPUT_DIR}/${camera.lastFilename}-cam:$camNum-state:$state-transformed.jpg", transformed);
           val toBufferedImage: BufferedImage = CvUtil.toBufferedImage(transformed)
           transformed.release
 
-          if (toBufferedImage != null && camNum == 1) {
-            GameUi.updateImage(2, new ImageIcon(toBufferedImage))
+          if (toBufferedImage != null) { //  && camNum == 1
+            GameUi.updateImage(camNum % 2, new ImageIcon(toBufferedImage))
           } else {
             //println(s"TO BUFFERED IMAGE NULL???? miert? ${camera.lastFilename}-XXXXXXX.jpg -be kiirva")
           }

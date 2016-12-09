@@ -32,7 +32,7 @@ object Config {
   // debug
   val DEBUG_BLURER = false
   val GUI_UPDATE = true // call the GameUi update method
-  val RUN_MERGER = false
+  val RUN_MERGER = true
 
   // alter processing
   val PROC_CALL_DART_RECOGNIZE = false // call DartRecognizer
@@ -64,10 +64,10 @@ object Config {
   var obull = new opencv_core.Point(bull.x, bull.y)
 
 
-  def getProperties: Config = {
+  def getProperties: Config =  synchronized {
     getProperties(Config.CAMERA_DEV_NUM)
   }
-  def getProperties(cam: Int): Config = {
+  def getProperties(cam: Int): Config =  synchronized {
     val confNum = Math.abs(cam) - 1;
     if (confFile(confNum) == null) {
       val prop = new Properties()
@@ -86,10 +86,10 @@ object Config {
     }
     confFile(confNum)
   }
-  def saveProperties: Any = {
+  def saveProperties: Any =  synchronized {
     saveProperties(Config.CAMERA_DEV_NUM)
   }
-  def saveProperties(cam: Int): Any = {
+  def saveProperties(cam: Int): Any = synchronized {
     val confNum = Math.abs(cam) - 1
     val prop = new Properties()
     var output = new FileOutputStream(s"config${cam}.properties")

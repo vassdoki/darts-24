@@ -20,6 +20,10 @@ class CaptureFile (inputFiles: Seq[File], camNum: Int) extends CaptureTrait{
   val frame = new Mat()
 
   override def captureFrame: Mat = synchronized {
+    val m = new Mat
+    captureFrame(m)
+  }
+  override def captureFrame(f: Mat): Mat = synchronized {
     if (CaptureFile.rest(camNum-1).size == 0) {
       throw new Exception("No more file from CaptureFile")
     } else {
