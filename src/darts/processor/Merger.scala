@@ -64,15 +64,15 @@ object Merger {
       println("mi van?")
     }
     Blurer.blurUntilClear(o.list.head)
-    val (kernel, x, y) = o.list.head.blurs.head
-    val (mod, num) = DartsUtil.identifyNumber(new Point(x, y))
-    println(s"$num x $mod (kernel: $kernel x: $x y: $y)")
+    val b = o.list.head.blurs.head
+    val (mod, num) = DartsUtil.identifyNumber(new Point(b.x, b.y))
+    println(s"$num x1 $mod (kernel1: ${b.kernelSize} x: ${b.x} y1: ${b.y})")
     if (Config.GUI_UPDATE) {
       val image = CvUtil.transform(o.list.head.mogMask, o.camNum)
       cvtColor(image, image, COLOR_GRAY2BGR)
       CvUtil.drawTable(image, Config.COLOR_YELLOW, 1)
       CvUtil.drawNumbers(image, Config.COLOR_YELLOW)
-      circle(image, new Point(x, y), 20, Config.COLOR_RED, 3, 8, 0)
+      circle(image, new Point(b.x, b.y), 20, Config.COLOR_RED, 3, 8, 0)
       putText(image, f"Number: $num (modifier: $mod) n:${o.list.head.filename}", new Point(30, 30),
         FONT_HERSHEY_PLAIN, // font type
         2, // font scale
@@ -82,34 +82,36 @@ object Merger {
         false)
 
       GameUi.updateImage(3, new ImageIcon(CvUtil.toBufferedImage(image)))
+      imwrite(f"${Config.OUTPUT_DIR}/${o.list.head.filename}-$num-$mod-alone.jpg", image)
+
     }
 
     o.release
   }
   def mergeObservationListsOrdered(o1: ObservationList, o2: ObservationList) =  synchronized {
     Blurer.blurUntilClear(o1.list.head)
-    var (kernel1, x1, y1) = o1.list.head.blurs.head
-    val (mod1, num1) = DartsUtil.identifyNumber(new Point(x1, y1))
-    println(s"$num1 x1 $mod1 (kernel1: $kernel1 x1: $x1 y1: $y1)")
+    var b1 = o1.list.head.blurs.head
+    val (mod1, num1) = DartsUtil.identifyNumber(new Point(b1.x, b1.y))
+    println(s"$num1 x1 $mod1 (kernel1: ${b1.kernelSize} x1: ${b1.x} y1: ${b1.y})")
 
     Blurer.blurUntilClear(o2.list.head)
-    var (kernel2, x2, y2) = o2.list.head.blurs.head
-    val (mod2, num2) = DartsUtil.identifyNumber(new Point(x2, y2))
-    println(s"$num2 x2 $mod2 (kernel2: $kernel2 x2: $x2 y2: $y2)")
+    var b2 = o2.list.head.blurs.head
+    val (mod2, num2) = DartsUtil.identifyNumber(new Point(b2.x, b2.y))
+    println(s"$num2 x2 $mod2 (kernel2: ${b2.kernelSize} x2: ${b2.x} y2: ${b2.y})")
 
-    if (x1 * y1 == 0) {x1 = x2; y1 = y2}
-    if (x2 * y2 == 0) {x2 = x1; y2 = y1}
+    if (b1.x * b1.y == 0) {b1 = b2}
+    if (b2.x * b2.y == 0) {b2 = b1}
 
-    if (CvUtil.getDistance(x1, y1, x2, y2) > 60) {
+    if (CvUtil.getDistance(b1.x, b1.y, b2.x, b2.y) > 100) {
       // too big distance, take the better image
-      if (kernel1 < kernel2) {
-        x2 = x1; y2 = y1
+      if (b1.kernelSize < b2.kernelSize) {
+        b2 = b1
       } else {
-        x1 = x2; y1 = y2
+        b1 = b2
       }
     }
 
-    val (x, y) = (((x1+x2)/2).toInt, ((y1+y2)/2).toInt)
+    val (x, y) = (((b1.x+b2.x)/2).toInt, Math.min(b1.y,b2.y))
     val (mod, num) = DartsUtil.identifyNumber(new Point(x, y))
 
     if (Config.GUI_UPDATE) {
@@ -130,12 +132,15 @@ object Merger {
       GameUi.updateImage(0, new ImageIcon(CvUtil.toBufferedImage(orig2)))
 
       val image = or(or1, or2).asMat
+      val h = image.size.height
+      val w = image.size.width
+      val output = new Mat(h * 2, w * 2, orig1.`type`())
       //GameUi.updateImage(2, new ImageIcon(CvUtil.toBufferedImage(image)))
 
       CvUtil.drawTable(image, Config.COLOR_YELLOW, 1)
       CvUtil.drawNumbers(image, Config.COLOR_YELLOW)
-      circle(image, new Point(x1, y1), 20, Config.COLOR_GREEN, 3, 8, 0)
-      circle(image, new Point(x2, y2), 20, Config.COLOR_RED, 3, 8, 0)
+      circle(image, new Point(b1.x, b1.y), 20, Config.COLOR_GREEN, 3, 8, 0)
+      circle(image, new Point(b2.x, b2.y), 20, Config.COLOR_RED, 3, 8, 0)
       circle(image, new Point(x, y), 10, Config.COLOR_WHITE, 3, 8, 0)
       putText(image, f"A: $num1 X $mod1 B: $num2 X $mod2 n:${o1.list.head.filename}", new Point(30, 30),
         FONT_HERSHEY_PLAIN, // font type
@@ -153,14 +158,37 @@ object Merger {
         false)
 
       GameUi.updateImage(3, new ImageIcon(CvUtil.toBufferedImage(image)))
-      imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod.jpg", image)
+
+      if (b1.bluredImage.`type`() < 2) {
+        cvtColor(b1.bluredImage, b1.bluredImage, COLOR_GRAY2BGR)
+      }
+      val bl1 = and(b1.bluredImage, Config.COLOR_GREEN).asMat
+      circle(image, new Point(b1.x, b1.y), 20, Config.COLOR_GREEN, 1, 8, 0)
+
+      if (b2.bluredImage.`type`() < 2) {
+        cvtColor(b2.bluredImage, b2.bluredImage, COLOR_GRAY2BGR)
+      }
+      val bl2 = and(b2.bluredImage, Config.COLOR_RED).asMat
+      circle(image, new Point(b2.x, b2.y), 20, Config.COLOR_RED, 1, 8, 0)
+      val image2 = or(bl1, bl2).asMat
 
 
+      orig2.copyTo(output(new Rect(0,  0,  w, h)))
+      orig1.copyTo(output(new Rect(w , 0 , w, h)))
+      image2.copyTo(output(new Rect(0, h , w, h)))
+      image.copyTo(output(new Rect(w , h,  w, h)))
+      println(s"image type: ${image.`type`()} orig type: ${orig1.`type`()} image2 type: ${image2.`type`()} b1 type: ${b1.bluredImage.`type`()} b2 type: ${b2.bluredImage.`type`()}")
+
+      imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod.jpg", output)
+
+      bl1.release
+      bl2.release
+      image2.release
       image.release
-      i1.release()
-      i2.release()
-      orig1.release()
-      orig2.release()
+      i1.release
+      i2.release
+      orig1.release
+      orig2.release
       or1.release
       or2.release
     }

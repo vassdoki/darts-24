@@ -1,6 +1,9 @@
 package darts.data
 
+import darts.util.CvUtil
 import org.bytedeco.javacpp.opencv_core.Mat
+
+case class Blured(x: Int, y: Int, kernelSize: Int, bluredImage: Mat)
 
 /**
   * Created by vassdoki on 2016.12.03..
@@ -18,7 +21,7 @@ class Observation(val orig: Mat,
   /**
     * (kernelSize, x, y)
     */
-  var blurs: List[(Int, Int, Int)] = Nil
+  var blurs: List[Blured] = Nil
 
   def setMogMask(m: Mat) = {
     //mogMask = m.clone
@@ -31,5 +34,6 @@ class Observation(val orig: Mat,
     if (mogMask != null) {
       mogMask.release
     }
+    blurs.foreach((b: Blured) => CvUtil.releaseMat(b.bluredImage))
   }
 }
