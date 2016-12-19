@@ -93,11 +93,13 @@ object Merger {
     var b1 = o1.list.head.blurs.head
     val (mod1, num1) = DartsUtil.identifyNumber(new Point(b1.x, b1.y))
     println(s"$num1 x1 $mod1 (kernel1: ${b1.kernelSize} x1: ${b1.x} y1: ${b1.y})")
+    LineDetector.detect(o1.list.head)
 
     Blurer.blurUntilClear(o2.list.head)
     var b2 = o2.list.head.blurs.head
     val (mod2, num2) = DartsUtil.identifyNumber(new Point(b2.x, b2.y))
     println(s"$num2 x2 $mod2 (kernel2: ${b2.kernelSize} x2: ${b2.x} y2: ${b2.y})")
+    LineDetector.detect(o2.list.head)
 
     if (b1.x * b1.y == 0) {b1 = b2}
     if (b2.x * b2.y == 0) {b2 = b1}
@@ -110,6 +112,12 @@ object Merger {
         b1 = b2
       }
     }
+
+    // get the intersection
+    val l1 = o1.list.head.lineDetected
+    val l2 = o2.list.head.lineDetected
+    val intersectionPoint = CvUtil.lineIntersection(l1.s, l1.m, l2.s, l2.m)
+    val (modI, numI) = DartsUtil.identifyNumber(intersectionPoint)
 
     val (x, y) = (((b1.x+b2.x)/2).toInt, Math.min(b1.y,b2.y))
     val (mod, num) = DartsUtil.identifyNumber(new Point(x, y))
@@ -139,9 +147,9 @@ object Merger {
 
       CvUtil.drawTable(image, Config.COLOR_YELLOW, 1)
       CvUtil.drawNumbers(image, Config.COLOR_YELLOW)
-      circle(image, new Point(b1.x, b1.y), 20, Config.COLOR_GREEN, 3, 8, 0)
-      circle(image, new Point(b2.x, b2.y), 20, Config.COLOR_RED, 3, 8, 0)
-      circle(image, new Point(x, y), 10, Config.COLOR_WHITE, 3, 8, 0)
+      circle(image, new Point(b1.x, b1.y), 20, Config.COLOR_GREEN, 1, 8, 0)
+      circle(image, new Point(b2.x, b2.y), 20, Config.COLOR_RED, 1, 8, 0)
+      circle(image, new Point(x, y), 10, Config.COLOR_WHITE, 1, 8, 0)
       putText(image, f"A: $num1 X $mod1 B: $num2 X $mod2 n:${o1.list.head.filename}", new Point(30, 30),
         FONT_HERSHEY_PLAIN, // font type
         2, // font scale
@@ -156,6 +164,14 @@ object Merger {
         3, // text thickness
         8, // Line type.
         false)
+      circle(image, intersectionPoint, 6, Config.COLOR_BLUE, 3, 8, 0)
+      putText(image, f"$numI X $modI", new Point(150, 60),
+        FONT_HERSHEY_PLAIN, // font type
+        2, // font scale
+        Config.COLOR_BLUE, // text color (here white)
+        3, // text thickness
+        8, // Line type.
+        false)
 
       GameUi.updateImage(3, new ImageIcon(CvUtil.toBufferedImage(image)))
 
@@ -163,14 +179,18 @@ object Merger {
         cvtColor(b1.bluredImage, b1.bluredImage, COLOR_GRAY2BGR)
       }
       val bl1 = and(b1.bluredImage, Config.COLOR_GREEN).asMat
-      circle(image, new Point(b1.x, b1.y), 20, Config.COLOR_GREEN, 1, 8, 0)
+      circle(bl1, new Point(b1.x, b1.y), 20, Config.COLOR_GREEN, 2, 8, 0)
 
       if (b2.bluredImage.`type`() < 2) {
         cvtColor(b2.bluredImage, b2.bluredImage, COLOR_GRAY2BGR)
       }
       val bl2 = and(b2.bluredImage, Config.COLOR_RED).asMat
-      circle(image, new Point(b2.x, b2.y), 20, Config.COLOR_RED, 1, 8, 0)
+      circle(bl2, new Point(b2.x, b2.y), 20, Config.COLOR_RED, 2, 8, 0)
       val image2 = or(bl1, bl2).asMat
+      circle(image2, intersectionPoint, 8, Config.COLOR_BLUE, 2, 8, 0)
+      line(image2, l1.p1, l1.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
+      line(image2, l2.p1, l2.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
+
 
 
       orig2.copyTo(output(new Rect(0,  0,  w, h)))

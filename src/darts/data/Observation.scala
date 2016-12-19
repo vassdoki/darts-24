@@ -1,9 +1,11 @@
 package darts.data
 
 import darts.util.CvUtil
-import org.bytedeco.javacpp.opencv_core.Mat
+import org.bytedeco.javacpp.opencv_core.{Mat, Point}
 
 case class Blured(x: Int, y: Int, kernelSize: Int, bluredImage: Mat)
+/** s: meredekseg, m: magassag, p1, p2 egy athalado vonal */
+case class LineDetected(s: Double, m: Int, p1: Point, p2: Point)
 
 /**
   * Created by vassdoki on 2016.12.03..
@@ -22,6 +24,7 @@ class Observation(val orig: Mat,
     * (kernelSize, x, y)
     */
   var blurs: List[Blured] = Nil
+  var lineDetected: LineDetected = null
 
   def setMogMask(m: Mat) = {
     //mogMask = m.clone

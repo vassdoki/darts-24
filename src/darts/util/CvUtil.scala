@@ -132,7 +132,7 @@ object CvUtil {
 
   def getDegreeFromBull(p: Point) = getDegree(new Point(Config.bull.x, Config.bull.y), p)
 
-  def getDegree(bull: Point, p: Point) = {
+  def getDegree(bull: Point, p: Point) : Double = {
     val x = p.x - bull.x
     val y = bull.y - p.y
     var v = 180 * Math.atan2(y, x) / Math.PI
@@ -150,9 +150,30 @@ object CvUtil {
     }
     v
   }
+  def getDegree180(p1: Point, p2: Point): Double = {
+    val d = getDegree(p1, p2)
+    if (d > 180) {
+      d - 180
+    } else {
+      d
+    }
+  }
+
+  def dec2rad(degree: Double) : Double = degree * (Math.PI / 180)
+
+  /** y1 = ax + c  y2 = bx + d */
+  def lineIntersection(a: Double, c: Int, b: Double, d: Int) : Point = {
+    val x = (d - c) / (a - b)
+    val y = a * x + c
+    new Point(x.toInt, y.toInt)
+  }
 
   def getDistanceFromBull(p: CvPoint): Double = {
     Math.sqrt(sq(Config.bull.x - p.x) + sq(Config.bull.y - p.y))
+  }
+
+  def getPointDistanceFromLine(p1: Point, p2: Point, a: Point): Double = {
+    Math.abs( ( (p2.y-p1.y)*a.x - (p2.x-p1.x)*a.y + p2.x*p1.y - p2.y*p1.x ) / Math.sqrt( sq(p2.y-p1.y) + sq(p2.x-p2.x)) )
   }
 
   def sq(a: Float): Float = a * a
