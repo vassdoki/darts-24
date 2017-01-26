@@ -31,6 +31,7 @@ object Config {
 
   // debug
   val DEBUG_BLURER = false
+  val DEBUG_LINE_DETECTOR = true
   val GUI_UPDATE = true // call the GameUi update method
   val RUN_MERGER = true
 

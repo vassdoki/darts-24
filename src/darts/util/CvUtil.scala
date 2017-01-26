@@ -160,6 +160,7 @@ object CvUtil {
   }
 
   def dec2rad(degree: Double) : Double = degree * (Math.PI / 180)
+  def rad2dec(rad: Double) : Double = rad * (180 / Math.PI)
 
   /** y1 = ax + c  y2 = bx + d */
   def lineIntersection(a: Double, c: Int, b: Double, d: Int) : Point = {

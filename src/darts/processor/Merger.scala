@@ -116,7 +116,12 @@ object Merger {
     // get the intersection
     val l1 = o1.list.head.lineDetected
     val l2 = o2.list.head.lineDetected
-    val intersectionPoint = CvUtil.lineIntersection(l1.s, l1.m, l2.s, l2.m)
+    val intersectionPoint = if (l1 == null || l2 == null) {
+      new Point(((b1.x+b2.x)/2).toInt, Math.min(b1.y,b2.y))
+    } else {
+      CvUtil.lineIntersection(l1.s, l1.m, l2.s, l2.m)
+    }
+
     val (modI, numI) = DartsUtil.identifyNumber(intersectionPoint)
 
     val (x, y) = (((b1.x+b2.x)/2).toInt, Math.min(b1.y,b2.y))
@@ -188,8 +193,8 @@ object Merger {
       circle(bl2, new Point(b2.x, b2.y), 20, Config.COLOR_RED, 2, 8, 0)
       val image2 = or(bl1, bl2).asMat
       circle(image2, intersectionPoint, 8, Config.COLOR_BLUE, 2, 8, 0)
-      line(image2, l1.p1, l1.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
-      line(image2, l2.p1, l2.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
+      if (l1 != null) line(image2, l1.p1, l1.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
+      if (l2 != null) line(image2, l2.p1, l2.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
 
 
 
