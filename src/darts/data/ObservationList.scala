@@ -28,6 +28,7 @@ class ObservationList(val camNum: Int) {
 
       list = list :+ new Observation(orig, filename, camNum, mogMask, mogMaskNonZero)
     }else {
+      state = 2
       CvUtil.releaseMat(orig)
       CvUtil.releaseMat(mogMask)
       addEmpty
