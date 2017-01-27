@@ -16,7 +16,7 @@ object Merger {
   val unprocessed: Array[ObservationList] = Array(null, null)
 
   def merge(o: ObservationList) = synchronized {
-    var cc = o.camNum - 1 // current camera number
+    var cc = o.camNum -1 // current camera number
     var oc = (cc + 1) % 2 // the other camera number
     println(s"cam: ${o.camNum} state: ${o.state} imgCount: ${o.list.size} null 1: ${unprocessed(0) == null} null 2: ${unprocessed(1) == null}")
     o.state match {
@@ -30,7 +30,10 @@ object Merger {
         unprocessed(oc) = null
         o.release
       }
-      case 2 => o.release // nothing to do, hands on the image, nothing is unprocessed
+      case 2 => {
+        handleHands
+        o.release
+      } // nothing to do, hands on the image, nothing is unprocessed
       case 1 if unprocessed(oc) != null => {
         mergeObservationLists(unprocessed(oc), o)
         unprocessed(oc) = null
@@ -47,6 +50,15 @@ object Merger {
       }
       case 0 => o.release // do nothing with the emtpy table
     }
+  }
+
+  def httpGet(url: String) = {
+    println(s"get: ${url}")
+    scala.io.Source.fromURL(url).mkString
+  }
+
+  def handleHands = {
+    httpGet(s"http://10.27.7.26:8080/cam?handsVisible=1")
   }
 
   def mergeObservationLists(o1: ObservationList, o2: ObservationList) = {
@@ -83,7 +95,7 @@ object Merger {
 
       GameUi.updateImage(3, new ImageIcon(CvUtil.toBufferedImage(image)))
       imwrite(f"${Config.OUTPUT_DIR}/${o.list.head.filename}-$num-$mod-alone.jpg", image)
-
+      httpGet(s"http://10.27.7.26:8080/cam?num=${num}&modifier=${mod}")
     }
 
     o.release
@@ -205,6 +217,7 @@ object Merger {
       println(s"image type: ${image.`type`()} orig type: ${orig1.`type`()} image2 type: ${image2.`type`()} b1 type: ${b1.bluredImage.`type`()} b2 type: ${b2.bluredImage.`type`()}")
 
       imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod.jpg", output)
+      httpGet(s"http://10.27.7.26:8080/cam?num=${numI}&modifier=${modI}")
 
       bl1.release
       bl2.release
