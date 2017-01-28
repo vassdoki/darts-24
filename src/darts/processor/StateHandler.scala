@@ -17,7 +17,7 @@ import org.joda.time.DateTime
   */
 class StateHandler {
   // this triggers the dart recognision
-  val MIN_NONE_ZERO = 2000 // if below, then the table is empty
+  val MIN_NONE_ZERO = 500 // if below, then the table is empty
   val MAX_NONE_ZERO = 40000 // if above, then hands are visible
 
   val MOG_LEARNING_RATE = 0.2
@@ -36,14 +36,18 @@ class StateHandler {
   def runStateHandler(camera: CaptureTrait, camNum: Int) = {
 
     val mog = createMog
-    var imageMat: Mat = null
+    var imageMat: Mat = new Mat()
     var mask: Mat = new Mat()
 
     // warm up the mog
     for(i <- 1 to 5) {
+      println(s"i: ${i}")
       imageMat = camera.captureFrame(imageMat)
+      println("i utan 1")
       mog.apply(imageMat, mask, MOG_LEARNING_RATE)
+      println("i utan 2")
       imageMat.release
+      println("i utan 3")
     }
     try {
       var obsList = new ObservationList(camNum)
@@ -83,6 +87,9 @@ class StateHandler {
               //handleObservations(obsList)
               obsList.setState
               //println(s"State change: state: ${obsList.state} imgCount: ${obsList.list.size} camera: $camNum --------------------------------")
+              if (Config.SAVE_MOG_FEATURE && obsList.state == 1) {
+                imwrite(f"${Config.OUTPUT_DIR}/${camera.lastFilename}-cam:$camNum-state:$state-transformed.jpg", obsList.list.head.mogMask);
+              }
               if (Config.RUN_MERGER) {
                 Merger.merge(obsList)
               } else {
@@ -92,6 +99,11 @@ class StateHandler {
               state = 0
             }
           }
+        }
+        println(s"cam: ${camNum} file: ${camera.lastFilename} z: ${maskNonZero}    state: ${state} o.state: ${obsList.state}")
+        //print(s"${camNum}")
+        if (Config.SAVE_MOG && state == 1) {
+          imwrite(f"${Config.OUTPUT_DIR}/${camera.lastFilename}-cam:$camNum-state:$state-ostate-${obsList.state}-zero-${maskNonZero}.jpg", mask)
         }
         if (Config.GUI_UPDATE) { //  && state > 0
           val transformed = CvUtil.transform(imageMat, camNum)
@@ -140,7 +152,7 @@ class StateHandler {
     println("History size: " + mog.getHistory)
     mog.setHistory(200)
     //mog.setVarThreshold(20)
-    mog.setVarThreshold(128) // default: 16
+    mog.setVarThreshold(90) // default: 16
     println("varThreshold: " + mog.getVarThreshold)
     mog.setComplexityReductionThreshold(0.05) // default: 0.05
     println("ComplexityReductionThreshold: " + mog.getComplexityReductionThreshold())
@@ -157,9 +169,13 @@ class StateHandler {
   }
 
   def continousCameraUpdate(camNum: Int) = {
+    println("conti 1")
     val capture = CaptureTrait.get(camNum)
+    println("conti 2")
     runStateHandler(capture, Math.abs(camNum))
+    println("conti 3")
     println(s"camera release: $camNum")
+    println("conti 4")
     capture.release
   }
 }

@@ -9,6 +9,7 @@ import scala.swing.SimpleSwingApplication
 import scala.swing._
 
 import darts.processor.StateHandler
+import darts.util.Config
 
 import scala.concurrent.{ExecutionContext, Future}
 import ExecutionContext.Implicits.global
@@ -91,10 +92,10 @@ object GameUi extends  SimpleSwingApplication{
         println("1 varunk")
         Thread.sleep(1000)
         println("1 mehet")
-        stateHandler1.continousCameraUpdate(-1)
+        stateHandler1.continousCameraUpdate(1 * Config.USE_FILES)
       }
       val fut2 = Future{
-        stateHandler2.continousCameraUpdate(-2)
+        //stateHandler2.continousCameraUpdate(2 * Config.USE_FILES)
       }
     } else {
       StateHandler.cameraAllowed = false

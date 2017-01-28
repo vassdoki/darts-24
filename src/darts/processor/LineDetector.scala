@@ -64,7 +64,7 @@ object LineDetector {
     imwrite(f"${Config.OUTPUT_DIR}/${o.filename}-line2.jpg", blured)
 
     //TODO itt az átlag s és átlag m-et kéne visszaadni, illetve abból generálni egy l1 és l2 pontot
-    o.lineDetected = LineDetected(s, m, l1, l2)
+    o.lineDetected = LineDetected(0.5, 10, new Point(10,10), new Point(50,100))
 
   }
 

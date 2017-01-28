@@ -23,6 +23,7 @@ class Config {
 }
 object Config {
   val CAMERA_DEV_NUM = 2
+  val USE_FILES = -1 // -1 saved files, 1 real camera
   val SAVE_CAPTURED = false
   val INPUT_DIR = "/home/vassdoki/darts/v2/test"
   val OUTPUT_DIR = "/home/vassdoki/darts/v2/d"
@@ -32,12 +33,13 @@ object Config {
   // debug
   val DEBUG_BLURER = false
   val DEBUG_LINE_DETECTOR = true
-  val GUI_UPDATE = true // call the GameUi update method
-  val RUN_MERGER = true
+  val GUI_UPDATE = false // call the GameUi update method
+  val RUN_MERGER = false
 
   // alter processing
   val PROC_CALL_DART_RECOGNIZE = false // call DartRecognizer
-  val SAVE_MOG = false // save mog mask from BackgroundSubtractor (state....)
+  val SAVE_MOG = true // save mog mask from BackgroundSubtractor (state....)
+  val SAVE_MOG_FEATURE = false // save only mog, where the darts is
   val SAVE_DR_STATE = false // save DartRecognizer process visualization
   val SAVE_DR_COLORED = false  // save the result of the backgroundSubtractor colored
   val SAVE_MERGE_COLORED = false // save the result of the two backgroundSubtractor colored merged
@@ -73,7 +75,7 @@ object Config {
     if (confFile(confNum) == null) {
       val prop = new Properties()
       var input: InputStream = null
-      input = new FileInputStream(s"config${Math.abs(cam)}.properties")
+      input = new FileInputStream(s"/home/vassdoki/config${Math.abs(cam)}.properties")
       prop.load(input)
 
       confFile(confNum) = new Config

@@ -12,6 +12,8 @@ import org.bytedeco.javacpp.opencv_imgcodecs.imwrite
   * List of observations that are sequentian and are in the same state
   */
 class ObservationList(val camNum: Int) {
+  val MIN = 3
+  val MAX = 5
   /**
     * States:
     * 0: empty table
@@ -33,13 +35,14 @@ class ObservationList(val camNum: Int) {
       CvUtil.releaseMat(mogMask)
       addEmpty
     }
+    setState
   }
 
   /** if we don't need more image to decide the state, then it would be a waste of resource to clone and store the
     * images. Just count them in this case.
     * @return
     */
-  def needsMore: Boolean = list.size < 5
+  def needsMore: Boolean = list.size < MAX
   def addEmpty = {
     emptyCount += 1
   }
@@ -57,14 +60,14 @@ class ObservationList(val camNum: Int) {
     */
   def setState: Int = {
     list.size match{
-      case i if i <= 2 => state = 0
-      case i if i == 3 => state = 1
-      case 4 => {
+      case i if i < MIN => state = 0
+      case i if i >= MIN && i < MAX => state = 1
+      case i if i == MAX => {
         // this first observation is probably a moving dart
         removeFirstObservation
         state = 1
       }
-      case i if i > 4 => state = 2
+      case i if i > MAX => state = 2
     }
     state
   }

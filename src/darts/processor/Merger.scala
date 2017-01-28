@@ -16,49 +16,62 @@ object Merger {
   val unprocessed: Array[ObservationList] = Array(null, null)
 
   def merge(o: ObservationList) = synchronized {
-    var cc = o.camNum -1 // current camera number
+    var cc = o.camNum -1// current camera number
     var oc = (cc + 1) % 2 // the other camera number
-    println(s"cam: ${o.camNum} state: ${o.state} imgCount: ${o.list.size} null 1: ${unprocessed(0) == null} null 2: ${unprocessed(1) == null}")
+    println(s">>>>>> : cam: ${o.camNum} state: ${o.state} imgCount: ${o.list.size} unprocessed(0): ${unprocessed(0) != null} unprocessed(1): ${unprocessed(1) != null}")
     o.state match {
       case 2 if unprocessed(cc) != null => {
         // do nothing, we might get an observation from the other cam
+        println("merge 1")
         o.release
       }
       case 2 if unprocessed(oc) != null => {
         // process the other cam's last observation
+        println("merge 2")
         mergeObservationListAlone(unprocessed(oc))
+        println("merge 2 vege")
         unprocessed(oc) = null
         o.release
       }
       case 2 => {
+        println("merge 3")
         handleHands
         o.release
       } // nothing to do, hands on the image, nothing is unprocessed
       case 1 if unprocessed(oc) != null => {
+        println("merge 4")
         mergeObservationLists(unprocessed(oc), o)
+        println("merge 4 vege")
         unprocessed(oc) = null
       }
       case 1 if unprocessed(cc) != null => {
+        println("merge 5")
         // we got two from the same cam, but none from the other
         // process the older one alone
         mergeObservationListAlone(unprocessed(cc))
+        println("merge 5 vege")
         unprocessed(cc) = o
       }
       case 1 if unprocessed(cc) == null => {
+        println("merge 6")
         // store it and wait for the other cam
         unprocessed(cc) = o
       }
-      case 0 => o.release // do nothing with the emtpy table
+      case 0 => {
+        println("merge 7")
+        o.release
+      } // do nothing with the emtpy table
     }
+    println(s"<<<<< : cam: ${o.camNum} state: ${o.state} imgCount: ${o.list.size} unprocessed(0): ${unprocessed(0) != null} unprocessed(1): ${unprocessed(1) != null}")
   }
 
   def httpGet(url: String) = {
-    println(s"get: ${url}")
+    println(s"========================================================= get: ${url}")
     scala.io.Source.fromURL(url).mkString
   }
 
   def handleHands = {
-    httpGet(s"http://10.27.7.26:8080/cam?handsVisible=1")
+    httpGet(s"http://10.27.7.113:8080/Cam?handsVisible=1")
   }
 
   def mergeObservationLists(o1: ObservationList, o2: ObservationList) = {
@@ -95,23 +108,31 @@ object Merger {
 
       GameUi.updateImage(3, new ImageIcon(CvUtil.toBufferedImage(image)))
       imwrite(f"${Config.OUTPUT_DIR}/${o.list.head.filename}-$num-$mod-alone.jpg", image)
-      httpGet(s"http://10.27.7.26:8080/cam?num=${num}&modifier=${mod}")
+      httpGet(s"http://10.27.7.113:8080/Cam?num=${num}&modifier=${mod}")
     }
 
     o.release
   }
   def mergeObservationListsOrdered(o1: ObservationList, o2: ObservationList) =  synchronized {
+    println("blur until cleared 1")
     Blurer.blurUntilClear(o1.list.head)
+    println("blur until cleared 1 vege")
     var b1 = o1.list.head.blurs.head
     val (mod1, num1) = DartsUtil.identifyNumber(new Point(b1.x, b1.y))
     println(s"$num1 x1 $mod1 (kernel1: ${b1.kernelSize} x1: ${b1.x} y1: ${b1.y})")
+    println("linde detector 1")
     LineDetector.detect(o1.list.head)
+    println("linde detector 1 vege")
 
+    println("blur until cleared 2")
     Blurer.blurUntilClear(o2.list.head)
+    println("blur until cleared 2 vege")
     var b2 = o2.list.head.blurs.head
     val (mod2, num2) = DartsUtil.identifyNumber(new Point(b2.x, b2.y))
     println(s"$num2 x2 $mod2 (kernel2: ${b2.kernelSize} x2: ${b2.x} y2: ${b2.y})")
+    println("line detector 2")
     LineDetector.detect(o2.list.head)
+    println("line detector 2 vege")
 
     if (b1.x * b1.y == 0) {b1 = b2}
     if (b2.x * b2.y == 0) {b2 = b1}
@@ -126,15 +147,15 @@ object Merger {
     }
 
     // get the intersection
-    val l1 = o1.list.head.lineDetected
-    val l2 = o2.list.head.lineDetected
-    val intersectionPoint = if (l1 == null || l2 == null) {
-      new Point(((b1.x+b2.x)/2).toInt, Math.min(b1.y,b2.y))
-    } else {
-      CvUtil.lineIntersection(l1.s, l1.m, l2.s, l2.m)
-    }
-
-    val (modI, numI) = DartsUtil.identifyNumber(intersectionPoint)
+//    val l1 = o1.list.head.lineDetected
+//    val l2 = o2.list.head.lineDetected
+//    val intersectionPoint = if (l1 == null || l2 == null) {
+//      new Point(((b1.x+b2.x)/2).toInt, Math.min(b1.y,b2.y))
+//    } else {
+//      CvUtil.lineIntersection(l1.s, l1.m, l2.s, l2.m)
+//    }
+//
+//    val (modI, numI) = DartsUtil.identifyNumber(intersectionPoint)
 
     val (x, y) = (((b1.x+b2.x)/2).toInt, Math.min(b1.y,b2.y))
     val (mod, num) = DartsUtil.identifyNumber(new Point(x, y))
@@ -181,14 +202,14 @@ object Merger {
         3, // text thickness
         8, // Line type.
         false)
-      circle(image, intersectionPoint, 6, Config.COLOR_BLUE, 3, 8, 0)
-      putText(image, f"$numI X $modI", new Point(150, 60),
-        FONT_HERSHEY_PLAIN, // font type
-        2, // font scale
-        Config.COLOR_BLUE, // text color (here white)
-        3, // text thickness
-        8, // Line type.
-        false)
+//      circle(image, intersectionPoint, 6, Config.COLOR_BLUE, 3, 8, 0)
+//      putText(image, f"$numI X $modI", new Point(150, 60),
+//        FONT_HERSHEY_PLAIN, // font type
+//        2, // font scale
+//        Config.COLOR_BLUE, // text color (here white)
+//        3, // text thickness
+//        8, // Line type.
+//        false)
 
       GameUi.updateImage(3, new ImageIcon(CvUtil.toBufferedImage(image)))
 
@@ -204,9 +225,9 @@ object Merger {
       val bl2 = and(b2.bluredImage, Config.COLOR_RED).asMat
       circle(bl2, new Point(b2.x, b2.y), 20, Config.COLOR_RED, 2, 8, 0)
       val image2 = or(bl1, bl2).asMat
-      circle(image2, intersectionPoint, 8, Config.COLOR_BLUE, 2, 8, 0)
-      if (l1 != null) line(image2, l1.p1, l1.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
-      if (l2 != null) line(image2, l2.p1, l2.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
+//      circle(image2, intersectionPoint, 8, Config.COLOR_BLUE, 2, 8, 0)
+//      if (l1 != null) line(image2, l1.p1, l1.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
+//      if (l2 != null) line(image2, l2.p1, l2.p2, Config.COLOR_BLUE, 1, LINE_AA, 0)
 
 
 
@@ -214,10 +235,9 @@ object Merger {
       orig1.copyTo(output(new Rect(w , 0 , w, h)))
       image2.copyTo(output(new Rect(0, h , w, h)))
       image.copyTo(output(new Rect(w , h,  w, h)))
-      println(s"image type: ${image.`type`()} orig type: ${orig1.`type`()} image2 type: ${image2.`type`()} b1 type: ${b1.bluredImage.`type`()} b2 type: ${b2.bluredImage.`type`()}")
+      //println(s"image type: ${image.`type`()} orig type: ${orig1.`type`()} image2 type: ${image2.`type`()} b1 type: ${b1.bluredImage.`type`()} b2 type: ${b2.bluredImage.`type`()}")
 
       imwrite(f"${Config.OUTPUT_DIR}/${o1.list.head.filename}-$num-$mod.jpg", output)
-      httpGet(s"http://10.27.7.26:8080/cam?num=${numI}&modifier=${modI}")
 
       bl1.release
       bl2.release
@@ -230,6 +250,7 @@ object Merger {
       or1.release
       or2.release
     }
+    httpGet(s"http://10.27.7.113:8080/Cam?num=${num}&modifier=${mod}")
     o1.release
     o2.release
   }

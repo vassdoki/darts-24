@@ -27,10 +27,14 @@ object CaptureTrait {
   }
   def get(num: Int): CaptureTrait = {
     if (num < 0) {
+      println("trait 1")
       val d = new File(Config.INPUT_DIR)
+      println(s"trait 2 s: ${d}")
       val x: Seq[File] = Seq(d.listFiles.filter(_.isFile).filter(_.getName.startsWith(s"d${Math.abs(num)}")).sorted: _*)
+      println(s"trait 3 x: ${x.size}")
       get(x, Math.abs(num))
     } else {
+      println("trait video")
       getVideo(num)
     }
   }
