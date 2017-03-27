@@ -44,7 +44,7 @@ object ConfigGui extends SimpleSwingApplication{
   var openedImageClone: Mat = null
   val conf = Config.getProperties
 
-  val defaultDirectory = "/home/vassdoki/darts/v2/test"
+  val defaultDirectory = "/tmp/darts/v2/test"
   private lazy val fileChooser = new FileChooser(new File(defaultDirectory))
 
 

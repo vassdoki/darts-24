@@ -22,11 +22,11 @@ class Config {
 
 }
 object Config {
-  val CAMERA_DEV_NUM = 2
+  val CAMERA_DEV_NUM = 1
   val USE_FILES = -1 // -1 saved files, 1 real camera
   val SAVE_CAPTURED = false
-  val INPUT_DIR = "/home/vassdoki/darts/v2/test"
-  val OUTPUT_DIR = "/home/vassdoki/darts/v2/d"
+  val INPUT_DIR =  "/tmp/darts/v2/test"
+  val OUTPUT_DIR = "/tmp/darts/v2/d"
   val CAM_WIDTH = 1280
   val CAM_HEIGHT = 720
 
@@ -75,7 +75,7 @@ object Config {
     if (confFile(confNum) == null) {
       val prop = new Properties()
       var input: InputStream = null
-      input = new FileInputStream(s"/home/vassdoki/config${Math.abs(cam)}.properties")
+      input = new FileInputStream(s"/tmp/config${Math.abs(cam)}.properties")
       prop.load(input)
 
       confFile(confNum) = new Config
